@@ -6,7 +6,7 @@
  * While backend is not connected, mock data is used (clearly labeled).
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Activity, Cpu, GitCompare, AlertCircle, Info, Sun, Moon, Tv } from 'lucide-react';
+import { Activity, Cpu, GitCompare, AlertCircle, Info, Sun, Moon, Tv, LayoutTemplate, SlidersHorizontal } from 'lucide-react';
 
 import { useBackendStatus } from './hooks/useBackendStatus';
 import { useTheme } from './hooks/useTheme';
@@ -43,6 +43,17 @@ export default function App() {
 
   // Track simulation visibility
   const [showTrack, setShowTrack] = useState(true);
+
+  // UI Mode: User Friendly (basic stats & clean map) vs Detailed (full telemetry & circuit data)
+  const [uiMode, setUiMode] = useState<'simple' | 'detailed'>(() => {
+    const saved = localStorage.getItem('sazi-ui-mode');
+    return saved === 'simple' || saved === 'detailed' ? saved : 'detailed';
+  });
+
+  const handleSetUiMode = (mode: 'simple' | 'detailed') => {
+    setUiMode(mode);
+    localStorage.setItem('sazi-ui-mode', mode);
+  };
 
   // Simulation state
   const [simStatus, setSimStatus] = useState<SimStatus>('idle');
@@ -203,6 +214,34 @@ export default function App() {
         </div>
 
         <div className="app__header-right">
+          {/* UI Mode Toggle at the very top */}
+          <div className="ui-mode-toggle" role="radiogroup" aria-label="UI Mode Toggle">
+            <button
+              type="button"
+              id="btn-mode-simple"
+              className={`ui-mode-btn ${uiMode === 'simple' ? 'ui-mode-btn--active' : ''}`}
+              onClick={() => handleSetUiMode('simple')}
+              role="radio"
+              aria-checked={uiMode === 'simple'}
+              title="Switch to User Friendly UI (basic stats, clean map)"
+            >
+              <LayoutTemplate size={12} />
+              <span>USER FRIENDLY</span>
+            </button>
+            <button
+              type="button"
+              id="btn-mode-detailed"
+              className={`ui-mode-btn ${uiMode === 'detailed' ? 'ui-mode-btn--active' : ''}`}
+              onClick={() => handleSetUiMode('detailed')}
+              role="radio"
+              aria-checked={uiMode === 'detailed'}
+              title="Switch to Detailed Stats UI (deep telemetry & circuit analysis)"
+            >
+              <SlidersHorizontal size={12} />
+              <span>DETAILED STATS</span>
+            </button>
+          </div>
+
           {/* Backend status */}
           <div
             className={`app__backend-status ${backendStatus.online ? 'backend--online' : 'backend--offline'}`}
@@ -234,7 +273,11 @@ export default function App() {
       </header>
 
       {/* ── Race State Bar ──────────────────────────────────────────── */}
-      <RaceStateBar state={raceState} isRunning={simStatus === 'running'} />
+      <RaceStateBar
+        state={raceState}
+        isRunning={simStatus === 'running'}
+        isSimpleMode={uiMode === 'simple'}
+      />
 
       {/* ── Controls ───────────────────────────────────────────────── */}
       <div className="app__controls" role="toolbar" aria-label="Simulation controls">
@@ -308,6 +351,8 @@ export default function App() {
               raceState={raceState}
               prediction={prediction}
               isRunning={simStatus === 'running'}
+              isSimpleMode={uiMode === 'simple'}
+              onToggleUiMode={() => handleSetUiMode('detailed')}
             />
           </section>
         )}

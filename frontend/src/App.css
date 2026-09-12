@@ -157,6 +157,53 @@
   transform: rotate(15deg);
 }
 
+/* ── UI Mode Segmented Control at Very Top ────────────────────── */
+.ui-mode-toggle {
+  display: flex;
+  align-items: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 2px;
+  gap: 2px;
+}
+
+.ui-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.ui-mode-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.ui-mode-btn--active {
+  background: var(--bg-card);
+  color: var(--accent);
+  border-color: var(--border-subtle);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+@media (max-width: 900px) {
+  .ui-mode-btn span {
+    display: none;
+  }
+}
+
 /* ── Controls ───────────────────────────────────────────────── */
 .app__controls {
   display: flex;

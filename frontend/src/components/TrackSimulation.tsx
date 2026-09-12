@@ -18,6 +18,8 @@ interface Props {
   raceState: RaceState | null;
   prediction: PredictResponse | null;
   isRunning: boolean;
+  isSimpleMode?: boolean;
+  onToggleUiMode?: () => void;
 }
 
 // Circuit dimensions
@@ -56,7 +58,13 @@ const CURBS = [
   { x: 105, y: 395, w: 45, h: 16, rot: -15 },
 ];
 
-export default function TrackSimulation({ raceState, prediction, isRunning }: Props) {
+export default function TrackSimulation({
+  raceState,
+  prediction,
+  isRunning,
+  isSimpleMode = false,
+  onToggleUiMode,
+}: Props) {
   const pathRef = useRef<SVGPathElement | null>(null);
   const [totalLength, setTotalLength] = useState<number>(1);
   const [carProgress, setCarProgress] = useState<number>(0.15); // 0 to 1
@@ -186,14 +194,6 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
     const isHeavyBrakingZone = (carProgress > 0.72 && carProgress < 0.78) || (carProgress > 0.33 && carProgress < 0.38);
     const isHighSpeedStraight = carProgress > 0.85 || carProgress < 0.15 || (carProgress > 0.50 && carProgress < 0.62);
 
-    let throttle = 85;
-    let brake = 0;
-    let gear = 7;
-    let rpm = 11800;
-    let latG = 1.2;
-    let lonG = 0.8;
-    let shiftState: 'UPSHIFT' | 'DOWNSHIFT' | 'HOLD' | 'NEUTRAL' = 'HOLD';
-
     if (!isRunning) {
       return {
         throttle: 0,
@@ -207,6 +207,14 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
         totalShifts: 0,
       };
     }
+
+    let throttle = 85;
+    let brake = 0;
+    let gear = 7;
+    let rpm = 11800;
+    let latG = 1.2;
+    let lonG = 0.8;
+    let shiftState: 'UPSHIFT' | 'DOWNSHIFT' | 'HOLD' | 'NEUTRAL' = 'HOLD';
 
     if (isHeavyBrakingZone) {
       throttle = 0;
@@ -309,51 +317,59 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             <span className="track-sim__hud-val">{currentLap}<small>/{totalLaps}</small></span>
           </div>
 
-          <div className="track-sim__hud-item">
-            <span className="track-sim__hud-label">SECTOR</span>
-            <span className="track-sim__hud-val track-sim__hud-sector">{sector}</span>
-          </div>
-
-          {/* Throttle & Brake quick gauge */}
-          <div className="track-sim__hud-item">
-            <span className="track-sim__hud-label">INPUTS (THR/BRK)</span>
-            <div className="track-sim__hud-inputs-mini">
-              <div className="track-sim__mini-bar-track">
-                <div className="track-sim__mini-bar-fill track-sim__mini-bar-fill--thr" style={{ height: `${telemetryDynamics.throttle}%` }} />
+          {/* Detailed Sector & Telemetry Inputs (Hidden in Simple Mode) */}
+          {!isSimpleMode && (
+            <>
+              <div className="track-sim__hud-item">
+                <span className="track-sim__hud-label">SECTOR</span>
+                <span className="track-sim__hud-val track-sim__hud-sector">{sector}</span>
               </div>
-              <div className="track-sim__mini-bar-track">
-                <div className="track-sim__mini-bar-fill track-sim__mini-bar-fill--brk" style={{ height: `${telemetryDynamics.brake}%` }} />
+
+              {/* Throttle & Brake quick gauge */}
+              <div className="track-sim__hud-item">
+                <span className="track-sim__hud-label">INPUTS (THR/BRK)</span>
+                <div className="track-sim__hud-inputs-mini">
+                  <div className="track-sim__mini-bar-track">
+                    <div className="track-sim__mini-bar-fill track-sim__mini-bar-fill--thr" style={{ height: `${telemetryDynamics.throttle}%` }} />
+                  </div>
+                  <div className="track-sim__mini-bar-track">
+                    <div className="track-sim__mini-bar-fill track-sim__mini-bar-fill--brk" style={{ height: `${telemetryDynamics.brake}%` }} />
+                  </div>
+                  <span className="track-sim__mini-text mono">
+                    T:<strong>{telemetryDynamics.throttle}%</strong> B:<strong>{telemetryDynamics.brake}%</strong>
+                  </span>
+                </div>
               </div>
-              <span className="track-sim__mini-text mono">
-                T:<strong>{telemetryDynamics.throttle}%</strong> B:<strong>{telemetryDynamics.brake}%</strong>
-              </span>
-            </div>
-          </div>
 
-          {/* Gear and Shift */}
-          <div className="track-sim__hud-item">
-            <span className="track-sim__hud-label">GEAR</span>
-            <span className="track-sim__hud-val track-sim__hud-gear">
-              G{telemetryDynamics.gear}
-              {telemetryDynamics.shiftState === 'UPSHIFT' && <ArrowUp size={11} className="shift-icon shift-icon--up" />}
-              {telemetryDynamics.shiftState === 'DOWNSHIFT' && <ArrowDown size={11} className="shift-icon shift-icon--down" />}
-            </span>
-          </div>
+              {/* Gear and Shift */}
+              <div className="track-sim__hud-item">
+                <span className="track-sim__hud-label">GEAR</span>
+                <span className="track-sim__hud-val track-sim__hud-gear">
+                  G{telemetryDynamics.gear}
+                  {telemetryDynamics.shiftState === 'UPSHIFT' && <ArrowUp size={11} className="shift-icon shift-icon--up" />}
+                  {telemetryDynamics.shiftState === 'DOWNSHIFT' && <ArrowDown size={11} className="shift-icon shift-icon--down" />}
+                </span>
+              </div>
+            </>
+          )}
 
+          {/* Speed (Shown in both Simple & Detailed modes) */}
           <div className="track-sim__hud-item">
             <span className="track-sim__hud-label">SPEED</span>
             <span className="track-sim__hud-val track-sim__hud-speed">{Math.round(speed)} <small>KM/H</small></span>
           </div>
 
-          {/* DRS Mention in Header */}
-          <div className="track-sim__hud-item">
-            <span className="track-sim__hud-label">DRS WING</span>
-            <span className={`track-sim__hud-val track-sim__drs ${isDrsActive ? 'track-sim__drs--open' : isDrsZone ? 'track-sim__drs--avail' : ''}`}>
-              {isDrsActive ? 'OPEN (+13.4kph)' : isDrsZone ? 'ARMED (<1.0s)' : 'CLOSED'}
-            </span>
-          </div>
+          {/* DRS Wing (Hidden in Simple Mode) */}
+          {!isSimpleMode && (
+            <div className="track-sim__hud-item">
+              <span className="track-sim__hud-label">DRS WING</span>
+              <span className={`track-sim__hud-val track-sim__drs ${isDrsActive ? 'track-sim__drs--open' : isDrsZone ? 'track-sim__drs--avail' : ''}`}>
+                {isDrsActive ? 'OPEN (+13.4kph)' : isDrsZone ? 'ARMED (<1.0s)' : 'CLOSED'}
+              </span>
+            </div>
+          )}
 
-          {/* Battery % Left */}
+          {/* Battery % Left (Shown in both modes) */}
           <div className="track-sim__hud-item">
             <span className="track-sim__hud-label"><BatteryMedium size={9} /> BATT LEFT</span>
             <span className="track-sim__hud-val track-sim__hud-ers mono">
@@ -361,31 +377,37 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             </span>
           </div>
 
-          {/* Rate of Discharge & Recharge Flow */}
-          <div className="track-sim__hud-item">
-            <span className="track-sim__hud-label"><RefreshCw size={9} /> POWER FLOW</span>
-            <span className={`track-sim__hud-val mono ${netPowerFlowKw < 0 ? 'track-sim__hud-flow--disch' : netPowerFlowKw > 0 ? 'track-sim__hud-flow--rech' : 'track-sim__hud-flow--bal'}`}>
-              {netPowerFlowKw < 0 ? `-${Math.abs(netPowerFlowKw).toFixed(0)} kW` : netPowerFlowKw > 0 ? `+${netPowerFlowKw.toFixed(0)} kW` : '0 kW'}
-              <small>({netPowerFlowKw < 0 ? 'DISCH' : netPowerFlowKw > 0 ? 'RECH' : 'BAL'})</small>
-            </span>
-          </div>
+          {/* Detailed Power Flow, Tyre Deg & Efficiency (Hidden in Simple Mode) */}
+          {!isSimpleMode && (
+            <>
+              {/* Rate of Discharge & Recharge Flow */}
+              <div className="track-sim__hud-item">
+                <span className="track-sim__hud-label"><RefreshCw size={9} /> POWER FLOW</span>
+                <span className={`track-sim__hud-val mono ${netPowerFlowKw < 0 ? 'track-sim__hud-flow--disch' : netPowerFlowKw > 0 ? 'track-sim__hud-flow--rech' : 'track-sim__hud-flow--bal'}`}>
+                  {netPowerFlowKw < 0 ? `-${Math.abs(netPowerFlowKw).toFixed(0)} kW` : netPowerFlowKw > 0 ? `+${netPowerFlowKw.toFixed(0)} kW` : '0 kW'}
+                  <small>({netPowerFlowKw < 0 ? 'DISCH' : netPowerFlowKw > 0 ? 'RECH' : 'BAL'})</small>
+                </span>
+              </div>
 
-          {/* Tyre Degradation in Header */}
-          <div className="track-sim__hud-item">
-            <span className="track-sim__hud-label"><Disc size={9} /> TYRE DEG</span>
-            <span className="track-sim__hud-val mono" style={{ color: tyreDeg > 60 ? '#ef4444' : tyreDeg > 30 ? '#f59e0b' : '#10e782' }}>
-              {tyreDeg.toFixed(1)}% <small>(C3)</small>
-            </span>
-          </div>
+              {/* Tyre Degradation in Header */}
+              <div className="track-sim__hud-item">
+                <span className="track-sim__hud-label"><Disc size={9} /> TYRE DEG</span>
+                <span className="track-sim__hud-val mono" style={{ color: tyreDeg > 60 ? '#ef4444' : tyreDeg > 30 ? '#f59e0b' : '#10e782' }}>
+                  {tyreDeg.toFixed(1)}% <small>(C3)</small>
+                </span>
+              </div>
 
-          {/* Efficiency in Header */}
-          <div className="track-sim__hud-item">
-            <span className="track-sim__hud-label"><Cpu size={9} /> EFFICIENCY</span>
-            <span className="track-sim__hud-val mono" style={{ color: 'var(--accent)' }}>
-              {ersEfficiency.toFixed(1)}%
-            </span>
-          </div>
+              {/* Efficiency in Header */}
+              <div className="track-sim__hud-item">
+                <span className="track-sim__hud-label"><Cpu size={9} /> EFFICIENCY</span>
+                <span className="track-sim__hud-val mono" style={{ color: 'var(--accent)' }}>
+                  {ersEfficiency.toFixed(1)}%
+                </span>
+              </div>
+            </>
+          )}
 
+          {/* Gap & Strategy Mode (Shown in both modes) */}
           <div className="track-sim__hud-item">
             <span className="track-sim__hud-label">GAP P{(raceState?.position ?? 2) - 1 > 0 ? (raceState?.position ?? 2) - 1 : 1}</span>
             <span className="track-sim__hud-val track-sim__hud-gap">+{gapAhead.toFixed(2)}s</span>
@@ -408,18 +430,33 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             <span>{cameraFollow ? 'FULL CIRCUIT' : 'FOLLOW CAR'}</span>
           </button>
 
-          {/* Toggle Detailed Telemetry Stats */}
-          <button
-            type="button"
-            className={`track-sim__cam-btn ${showDetailedStats ? 'track-sim__cam-btn--active' : ''}`}
-            onClick={() => setShowDetailedStats(!showDetailedStats)}
-            title="Toggle live telemetry statistics drawer"
-            aria-label="Toggle telemetry statistics"
-          >
-            <Gauge size={12} />
-            <span>TELEMETRY STATS</span>
-            {showDetailedStats ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-          </button>
+          {/* Toggle Detailed Telemetry Stats or Switch Mode */}
+          {!isSimpleMode ? (
+            <button
+              type="button"
+              className={`track-sim__cam-btn ${showDetailedStats ? 'track-sim__cam-btn--active' : ''}`}
+              onClick={() => setShowDetailedStats(!showDetailedStats)}
+              title="Toggle live telemetry statistics drawer"
+              aria-label="Toggle telemetry statistics"
+            >
+              <Gauge size={12} />
+              <span>TELEMETRY STATS</span>
+              {showDetailedStats ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            </button>
+          ) : (
+            onToggleUiMode && (
+              <button
+                type="button"
+                className="track-sim__cam-btn"
+                onClick={onToggleUiMode}
+                title="Switch to detailed telemetry stats view"
+                aria-label="Switch to detailed view"
+              >
+                <Gauge size={12} />
+                <span>DETAILED STATS</span>
+              </button>
+            )
+          )}
         </div>
       </div>
 
@@ -646,64 +683,69 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             </g>
           ))}
 
-          {/* Brake Distance Boards Off-Track (150m, 100m, 50m approaching Turn 1) */}
-          <g className="track-sim__brake-boards">
-            <g transform="translate(710, 442)">
-              <rect x="-10" y="-8" width="20" height="12" rx="1" fill="#0f172a" stroke="#ffffff" strokeWidth="1" />
-              <text x="0" y="1" textAnchor="middle" fill="#ffffff" fontSize="7" fontWeight="bold" fontFamily="monospace">150</text>
-            </g>
-            <g transform="translate(740, 442)">
-              <rect x="-10" y="-8" width="20" height="12" rx="1" fill="#0f172a" stroke="#ffffff" strokeWidth="1" />
-              <text x="0" y="1" textAnchor="middle" fill="#ffffff" fontSize="7" fontWeight="bold" fontFamily="monospace">100</text>
-            </g>
-            <g transform="translate(770, 442)">
-              <rect x="-10" y="-8" width="20" height="12" rx="1" fill="#0f172a" stroke="#ffffff" strokeWidth="1" />
-              <text x="0" y="1" textAnchor="middle" fill="#ffffff" fontSize="7" fontWeight="bold" fontFamily="monospace">50</text>
-            </g>
-          </g>
+          {/* Detailed Track Markings & Corner Annotations (Hidden in Simple Mode) */}
+          {!isSimpleMode && (
+            <>
+              {/* Brake Distance Boards Off-Track (150m, 100m, 50m approaching Turn 1) */}
+              <g className="track-sim__brake-boards">
+                <g transform="translate(710, 442)">
+                  <rect x="-10" y="-8" width="20" height="12" rx="1" fill="#0f172a" stroke="#ffffff" strokeWidth="1" />
+                  <text x="0" y="1" textAnchor="middle" fill="#ffffff" fontSize="7" fontWeight="bold" fontFamily="monospace">150</text>
+                </g>
+                <g transform="translate(740, 442)">
+                  <rect x="-10" y="-8" width="20" height="12" rx="1" fill="#0f172a" stroke="#ffffff" strokeWidth="1" />
+                  <text x="0" y="1" textAnchor="middle" fill="#ffffff" fontSize="7" fontWeight="bold" fontFamily="monospace">100</text>
+                </g>
+                <g transform="translate(770, 442)">
+                  <rect x="-10" y="-8" width="20" height="12" rx="1" fill="#0f172a" stroke="#ffffff" strokeWidth="1" />
+                  <text x="0" y="1" textAnchor="middle" fill="#ffffff" fontSize="7" fontWeight="bold" fontFamily="monospace">50</text>
+                </g>
+              </g>
 
-          {/* Trackside Sector Labels (Placed Off-Track, Not Cutting Across the Road) */}
-          <text x="770" y="130" className="track-sim__sector-split-text">INT 1 (SECTOR 1)</text>
-          <text x="260" y="190" className="track-sim__sector-split-text">INT 2 (SECTOR 2)</text>
+              {/* Trackside Sector Labels (Placed Off-Track, Not Cutting Across the Road) */}
+              <text x="770" y="130" className="track-sim__sector-split-text">INT 1 (SECTOR 1)</text>
+              <text x="260" y="190" className="track-sim__sector-split-text">INT 2 (SECTOR 2)</text>
 
-          {/* Silverstone Iconic Corners & Straights (Clean Off-Track Labels) */}
-          <g className="track-sim__corner-annotations">
-            {/* Start / Finish & Hamilton Straight */}
-            <text x="450" y="445" className="track-sim__corner-label">HAMILTON STRAIGHT (START/FINISH)</text>
+              {/* Silverstone Iconic Corners & Straights (Clean Off-Track Labels) */}
+              <g className="track-sim__corner-annotations">
+                {/* Start / Finish & Hamilton Straight */}
+                <text x="450" y="445" className="track-sim__corner-label">HAMILTON STRAIGHT (START/FINISH)</text>
 
-            {/* Abbey & Farm (T1 - T2) */}
-            <text x="815" y="442" className="track-sim__corner-label track-sim__corner-label--apex">ABBEY & FARM (T1-T2)</text>
+                {/* Abbey & Farm (T1 - T2) */}
+                <text x="815" y="442" className="track-sim__corner-label track-sim__corner-label--apex">ABBEY & FARM (T1-T2)</text>
 
-            {/* Village & The Loop (T3 - T4) */}
-            <text x="880" y="270" className="track-sim__corner-label track-sim__corner-label--apex">THE LOOP (T4 • 78 KM/H)</text>
+                {/* Village & The Loop (T3 - T4) */}
+                <text x="880" y="270" className="track-sim__corner-label track-sim__corner-label--apex">THE LOOP (T4 • 78 KM/H)</text>
 
-            {/* Wellington Straight (DRS Zone 1) */}
-            <text x="770" y="98" className="track-sim__corner-label track-sim__corner-label--drs">WELLINGTON STRAIGHT (DRS 1)</text>
+                {/* Wellington Straight (DRS Zone 1) */}
+                <text x="770" y="98" className="track-sim__corner-label track-sim__corner-label--drs">WELLINGTON STRAIGHT (DRS 1)</text>
 
-            {/* Brooklands & Luffield (T6 - T7) */}
-            <text x="590" y="112" className="track-sim__corner-label track-sim__corner-label--apex">BROOKLANDS & LUFFIELD (T6-T7)</text>
+                {/* Brooklands & Luffield (T6 - T7) */}
+                <text x="590" y="112" className="track-sim__corner-label track-sim__corner-label--apex">BROOKLANDS & LUFFIELD (T6-T7)</text>
 
-            {/* Copse Corner (T9 - High Speed) */}
-            <text x="475" y="202" className="track-sim__corner-label track-sim__corner-label--apex">COPSE (T9 • 290 KM/H • 5.2G)</text>
+                {/* Copse Corner (T9 - High Speed) */}
+                <text x="475" y="202" className="track-sim__corner-label track-sim__corner-label--apex">COPSE (T9 • 290 KM/H • 5.2G)</text>
 
-            {/* Maggotts & Becketts (T10 - T13) */}
-            <text x="235" y="18" className="track-sim__corner-label track-sim__corner-label--apex">MAGGOTTS & BECKETTS (T10-T13)</text>
+                {/* Maggotts & Becketts (T10 - T13) */}
+                <text x="235" y="18" className="track-sim__corner-label track-sim__corner-label--apex">MAGGOTTS & BECKETTS (T10-T13)</text>
 
-            {/* Chapel Curve (T14) */}
-            <text x="140" y="18" className="track-sim__corner-label">CHAPEL (T14)</text>
+                {/* Chapel Curve (T14) */}
+                <text x="140" y="18" className="track-sim__corner-label">CHAPEL (T14)</text>
 
-            {/* Hangar Straight (DRS Zone 2) */}
-            <text x="42" y="130" transform="rotate(-90 42 130)" className="track-sim__corner-label track-sim__corner-label--drs">
-              HANGAR STRAIGHT (DRS 2 • 335 KM/H)
-            </text>
+                {/* Hangar Straight (DRS Zone 2) */}
+                <text x="42" y="130" transform="rotate(-90 42 130)" className="track-sim__corner-label track-sim__corner-label--drs">
+                  HANGAR STRAIGHT (DRS 2 • 335 KM/H)
+                </text>
 
-            {/* Stowe Corner (T15) */}
-            <text x="40" y="235" className="track-sim__corner-label track-sim__corner-label--apex">STOWE (T15 • -4.8G)</text>
+                {/* Stowe Corner (T15) */}
+                <text x="40" y="235" className="track-sim__corner-label track-sim__corner-label--apex">STOWE (T15 • -4.8G)</text>
 
-            {/* Vale & Club (T16 - T18) */}
-            <text x="230" y="312" className="track-sim__corner-label track-sim__corner-label--apex">VALE (T16)</text>
-            <text x="495" y="375" className="track-sim__corner-label track-sim__corner-label--apex">CLUB (T18)</text>
-          </g>
+                {/* Vale & Club (T16 - T18) */}
+                <text x="230" y="312" className="track-sim__corner-label track-sim__corner-label--apex">VALE (T16)</text>
+                <text x="495" y="375" className="track-sim__corner-label track-sim__corner-label--apex">CLUB (T18)</text>
+              </g>
+            </>
+          )}
 
           {/* Hidden reference path for exact coordinate sampling */}
           <path ref={pathRef} d={CIRCUIT_PATH} fill="none" stroke="none" />
@@ -915,97 +957,99 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
           )}
         </div>
 
-        {/* ── F1 TV Broadcast Onboard Telemetry Graphic (Floating HUD) ── */}
-        <div className="track-sim__onboard-hud">
-          <div className="track-sim__onboard-header">
-            <span className="track-sim__onboard-title">F1 LIVE TELEMETRY</span>
-            <span className={`track-sim__onboard-status ${isRunning ? 'active' : ''}`}>{isRunning ? 'TRANSMITTING' : 'STANDBY'}</span>
-          </div>
-
-          <div className="track-sim__onboard-main">
-            {/* Speed & Gear Cluster */}
-            <div className="track-sim__onboard-cluster">
-              <div className="track-sim__onboard-speed">
-                <span className="track-sim__onboard-speed-val mono">{Math.round(speed)}</span>
-                <span className="track-sim__onboard-speed-unit">KM/H</span>
-              </div>
-              <div className="track-sim__onboard-gear">
-                <span className="track-sim__onboard-gear-val mono">{telemetryDynamics.gear}</span>
-                <span className="track-sim__onboard-gear-lbl">GEAR</span>
-              </div>
+        {/* ── F1 TV Broadcast Onboard Telemetry Graphic (Floating HUD - Hidden in Simple Mode) ── */}
+        {!isSimpleMode && (
+          <div className="track-sim__onboard-hud">
+            <div className="track-sim__onboard-header">
+              <span className="track-sim__onboard-title">F1 LIVE TELEMETRY</span>
+              <span className={`track-sim__onboard-status ${isRunning ? 'active' : ''}`}>{isRunning ? 'TRANSMITTING' : 'STANDBY'}</span>
             </div>
 
-            {/* Vertical Throttle & Brake Bars */}
-            <div className="track-sim__onboard-pedals">
-              <div className="track-sim__pedal-meter">
-                <div className="track-sim__pedal-bar-vert">
-                  <div className="track-sim__pedal-fill-vert track-sim__pedal-fill-vert--thr" style={{ height: `${telemetryDynamics.throttle}%` }} />
+            <div className="track-sim__onboard-main">
+              {/* Speed & Gear Cluster */}
+              <div className="track-sim__onboard-cluster">
+                <div className="track-sim__onboard-speed">
+                  <span className="track-sim__onboard-speed-val mono">{Math.round(speed)}</span>
+                  <span className="track-sim__onboard-speed-unit">KM/H</span>
                 </div>
-                <span className="track-sim__pedal-text mono">{telemetryDynamics.throttle}%</span>
-                <span className="track-sim__pedal-tag">THR</span>
-              </div>
-
-              <div className="track-sim__pedal-meter">
-                <div className="track-sim__pedal-bar-vert">
-                  <div className="track-sim__pedal-fill-vert track-sim__pedal-fill-vert--brk" style={{ height: `${telemetryDynamics.brake}%` }} />
+                <div className="track-sim__onboard-gear">
+                  <span className="track-sim__onboard-gear-val mono">{telemetryDynamics.gear}</span>
+                  <span className="track-sim__onboard-gear-lbl">GEAR</span>
                 </div>
-                <span className="track-sim__pedal-text mono">{telemetryDynamics.brake}%</span>
-                <span className="track-sim__pedal-tag">BRK</span>
+              </div>
+
+              {/* Vertical Throttle & Brake Bars */}
+              <div className="track-sim__onboard-pedals">
+                <div className="track-sim__pedal-meter">
+                  <div className="track-sim__pedal-bar-vert">
+                    <div className="track-sim__pedal-fill-vert track-sim__pedal-fill-vert--thr" style={{ height: `${telemetryDynamics.throttle}%` }} />
+                  </div>
+                  <span className="track-sim__pedal-text mono">{telemetryDynamics.throttle}%</span>
+                  <span className="track-sim__pedal-tag">THR</span>
+                </div>
+
+                <div className="track-sim__pedal-meter">
+                  <div className="track-sim__pedal-bar-vert">
+                    <div className="track-sim__pedal-fill-vert track-sim__pedal-fill-vert--brk" style={{ height: `${telemetryDynamics.brake}%` }} />
+                  </div>
+                  <span className="track-sim__pedal-text mono">{telemetryDynamics.brake}%</span>
+                  <span className="track-sim__pedal-tag">BRK</span>
+                </div>
+              </div>
+
+              {/* DRS & ERS Broadcast Indicators */}
+              <div className="track-sim__onboard-systems">
+                <div className={`track-sim__sys-badge ${isDrsActive ? 'track-sim__sys-badge--drs-on' : ''}`}>
+                  <span className="sys-name">DRS</span>
+                  <span className="sys-state">{isDrsActive ? 'ACTIVE' : isDrsZone ? 'ARMED' : 'CLOSED'}</span>
+                </div>
+
+                <div className={`track-sim__sys-badge track-sim__sys-badge--ers ${action.toLowerCase()}`}>
+                  <span className="sys-name">ERS</span>
+                  <span className="sys-state">{action === 'OVERTAKE' ? 'BOOST' : action === 'RECOVER' ? 'REGEN' : 'BALANCED'}</span>
+                </div>
               </div>
             </div>
 
-            {/* DRS & ERS Broadcast Indicators */}
-            <div className="track-sim__onboard-systems">
-              <div className={`track-sim__sys-badge ${isDrsActive ? 'track-sim__sys-badge--drs-on' : ''}`}>
-                <span className="sys-name">DRS</span>
-                <span className="sys-state">{isDrsActive ? 'ACTIVE' : isDrsZone ? 'ARMED' : 'CLOSED'}</span>
+            {/* LED Rev Lights */}
+            <div className="track-sim__onboard-leds">
+              {Array.from({ length: 15 }).map((_, i) => (
+                <span
+                  key={i}
+                  className={`track-sim__led ${i < activeLeds ? (i < 5 ? 'track-sim__led--green' : i < 10 ? 'track-sim__led--yellow' : 'track-sim__led--red') : ''}`}
+                />
+              ))}
+            </div>
+
+            {/* Mini Telemetry Strip: Battery %, Net Power Flow kW, Tyre Deg %, and Efficiency */}
+            <div className="track-sim__onboard-strip">
+              <div className="track-sim__onboard-pill">
+                <span>BATT</span>
+                <strong className="mono">{batteryPercentLeft}% ({usableBatteryMj}MJ)</strong>
               </div>
-
-              <div className={`track-sim__sys-badge track-sim__sys-badge--ers ${action.toLowerCase()}`}>
-                <span className="sys-name">ERS</span>
-                <span className="sys-state">{action === 'OVERTAKE' ? 'BOOST' : action === 'RECOVER' ? 'REGEN' : 'BALANCED'}</span>
+              <div className="track-sim__onboard-pill">
+                <span>FLOW</span>
+                <strong className={`mono ${netPowerFlowKw < 0 ? 'track-sim__hud-flow--disch' : netPowerFlowKw > 0 ? 'track-sim__hud-flow--rech' : 'track-sim__hud-flow--bal'}`}>
+                  {netPowerFlowKw < 0 ? `-${Math.abs(netPowerFlowKw).toFixed(0)}kW` : netPowerFlowKw > 0 ? `+${netPowerFlowKw.toFixed(0)}kW` : '0kW'}
+                </strong>
+              </div>
+              <div className="track-sim__onboard-pill">
+                <span>TYRE</span>
+                <strong className="mono" style={{ color: tyreDeg > 60 ? '#ef4444' : tyreDeg > 30 ? '#f59e0b' : '#10e782' }}>
+                  {tyreDeg.toFixed(1)}%
+                </strong>
+              </div>
+              <div className="track-sim__onboard-pill">
+                <span>EFF</span>
+                <strong className="mono" style={{ color: 'var(--accent)' }}>{ersEfficiency.toFixed(1)}%</strong>
               </div>
             </div>
           </div>
-
-          {/* LED Rev Lights */}
-          <div className="track-sim__onboard-leds">
-            {Array.from({ length: 15 }).map((_, i) => (
-              <span
-                key={i}
-                className={`track-sim__led ${i < activeLeds ? (i < 5 ? 'track-sim__led--green' : i < 10 ? 'track-sim__led--yellow' : 'track-sim__led--red') : ''}`}
-              />
-            ))}
-          </div>
-
-          {/* Mini Telemetry Strip: Battery %, Net Power Flow kW, Tyre Deg %, and Efficiency */}
-          <div className="track-sim__onboard-strip">
-            <div className="track-sim__onboard-pill">
-              <span>BATT</span>
-              <strong className="mono">{batteryPercentLeft}% ({usableBatteryMj}MJ)</strong>
-            </div>
-            <div className="track-sim__onboard-pill">
-              <span>FLOW</span>
-              <strong className={`mono ${netPowerFlowKw < 0 ? 'track-sim__hud-flow--disch' : netPowerFlowKw > 0 ? 'track-sim__hud-flow--rech' : 'track-sim__hud-flow--bal'}`}>
-                {netPowerFlowKw < 0 ? `-${Math.abs(netPowerFlowKw).toFixed(0)}kW` : netPowerFlowKw > 0 ? `+${netPowerFlowKw.toFixed(0)}kW` : '0kW'}
-              </strong>
-            </div>
-            <div className="track-sim__onboard-pill">
-              <span>TYRE</span>
-              <strong className="mono" style={{ color: tyreDeg > 60 ? '#ef4444' : tyreDeg > 30 ? '#f59e0b' : '#10e782' }}>
-                {tyreDeg.toFixed(1)}%
-              </strong>
-            </div>
-            <div className="track-sim__onboard-pill">
-              <span>EFF</span>
-              <strong className="mono" style={{ color: 'var(--accent)' }}>{ersEfficiency.toFixed(1)}%</strong>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* ── Advanced Detailed Telemetry Statistics Drawer ─────────────── */}
-      {showDetailedStats && (
+      {!isSimpleMode && showDetailedStats && (
         <div className="track-sim__telemetry-drawer">
           {/* Card 1: Throttle Inputs, Brake Inputs & Gear Change */}
           <div className="track-sim__drawer-card">

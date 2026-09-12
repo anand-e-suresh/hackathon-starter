@@ -10,9 +10,10 @@ import './RaceStateBar.css';
 interface Props {
   state: RaceState | null;
   isRunning: boolean;
+  isSimpleMode?: boolean;
 }
 
-export default function RaceStateBar({ state, isRunning }: Props) {
+export default function RaceStateBar({ state, isRunning, isSimpleMode = false }: Props) {
   const prevPos = useRef<number | null>(null);
 
   const posChanged = state && prevPos.current !== null && prevPos.current !== state.position;
@@ -119,50 +120,55 @@ export default function RaceStateBar({ state, isRunning }: Props) {
           </div>
         </div>
 
-        <div className="rsb__divider" />
+        {/* Detailed Telemetry Metrics (Hidden in Simple/User-Friendly Mode) */}
+        {!isSimpleMode && (
+          <>
+            <div className="rsb__divider" />
 
-        {/* POWER FLOW: DISCHARGE / RECHARGE */}
-        <div className="rsb__metric">
-          <span className="rsb__label">
-            <Zap size={12} /> POWER FLOW
-          </span>
-          <span className={`rsb__value rsb__value--large ${flowClass}`}>
-            {netFlowKw < 0 ? `-${Math.abs(netFlowKw).toFixed(0)} kW` : netFlowKw > 0 ? `+${netFlowKw.toFixed(0)} kW` : '0 kW'}
-            <small className="rsb__unit">{netFlowKw < 0 ? 'DISCH' : netFlowKw > 0 ? 'RECH' : 'BAL'}</small>
-          </span>
-        </div>
-
-        <div className="rsb__divider" />
-
-        {/* TYRE DEGRADATION */}
-        <div className="rsb__metric">
-          <span className="rsb__label">
-            <Disc size={12} /> TYRE DEG
-          </span>
-          <div className="rsb__deg-group">
-            <span className="rsb__value rsb__value--large">
-              {tyreDeg.toFixed(1)}% <small className="rsb__unit">C3</small>
-            </span>
-            <div className="rsb__deg-bar">
-              <div
-                className={`rsb__deg-fill ${degClass}`}
-                style={{ width: `${Math.min(100, tyreDeg)}%` }}
-              />
+            {/* POWER FLOW: DISCHARGE / RECHARGE */}
+            <div className="rsb__metric">
+              <span className="rsb__label">
+                <Zap size={12} /> POWER FLOW
+              </span>
+              <span className={`rsb__value rsb__value--large ${flowClass}`}>
+                {netFlowKw < 0 ? `-${Math.abs(netFlowKw).toFixed(0)} kW` : netFlowKw > 0 ? `+${netFlowKw.toFixed(0)} kW` : '0 kW'}
+                <small className="rsb__unit">{netFlowKw < 0 ? 'DISCH' : netFlowKw > 0 ? 'RECH' : 'BAL'}</small>
+              </span>
             </div>
-          </div>
-        </div>
 
-        <div className="rsb__divider" />
+            <div className="rsb__divider" />
 
-        {/* EFFICIENCY */}
-        <div className="rsb__metric">
-          <span className="rsb__label">
-            <Cpu size={12} /> EFFICIENCY
-          </span>
-          <span className="rsb__value rsb__value--large" style={{ color: 'var(--accent)' }}>
-            {efficiency.toFixed(1)}%
-          </span>
-        </div>
+            {/* TYRE DEGRADATION */}
+            <div className="rsb__metric">
+              <span className="rsb__label">
+                <Disc size={12} /> TYRE DEG
+              </span>
+              <div className="rsb__deg-group">
+                <span className="rsb__value rsb__value--large">
+                  {tyreDeg.toFixed(1)}% <small className="rsb__unit">C3</small>
+                </span>
+                <div className="rsb__deg-bar">
+                  <div
+                    className={`rsb__deg-fill ${degClass}`}
+                    style={{ width: `${Math.min(100, tyreDeg)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="rsb__divider" />
+
+            {/* EFFICIENCY */}
+            <div className="rsb__metric">
+              <span className="rsb__label">
+                <Cpu size={12} /> EFFICIENCY
+              </span>
+              <span className="rsb__value rsb__value--large" style={{ color: 'var(--accent)' }}>
+                {efficiency.toFixed(1)}%
+              </span>
+            </div>
+          </>
+        )}
 
         <div className="rsb__divider" />
 
