@@ -58,6 +58,41 @@ const CURBS = [
   { x: 105, y: 395, w: 45, h: 16, rot: -15 },
 ];
 
+// Silverstone Grand Prix Circuit Telemetry Waypoints
+interface TrackWaypoint {
+  p: number;
+  speed: number;    // calibrated speed in km/h
+  throttle: number; // 0 to 100
+  brake: number;    // 0 to 100
+  latG: number;     // lateral G force
+}
+
+const CIRCUIT_WAYPOINTS: TrackWaypoint[] = [
+  { p: 0.00, speed: 268, throttle: 100, brake: 0,  latG: 0.2 }, // Hamilton Straight
+  { p: 0.12, speed: 320, throttle: 100, brake: 0,  latG: 0.3 }, // Approach Abbey
+  { p: 0.16, speed: 275, throttle: 80,  brake: 12, latG: 3.2 }, // Abbey Turn 1
+  { p: 0.21, speed: 250, throttle: 55,  brake: 25, latG: 2.8 }, // Farm Turn 2
+  { p: 0.25, speed: 170, throttle: 0,   brake: 90, latG: 1.4 }, // Heavy braking into Village
+  { p: 0.27, speed: 88,  throttle: 15,  brake: 60, latG: 2.2 }, // The Loop hairpin
+  { p: 0.31, speed: 118, throttle: 85,  brake: 0,  latG: 1.8 }, // Aintree exit
+  { p: 0.36, speed: 245, throttle: 100, brake: 0,  latG: 0.3 }, // Wellington Straight
+  { p: 0.39, speed: 308, throttle: 100, brake: 0,  latG: 0.2 }, // End Wellington Straight
+  { p: 0.42, speed: 165, throttle: 0,   brake: 88, latG: 1.5 }, // Brooklands braking
+  { p: 0.46, speed: 128, throttle: 55,  brake: 15, latG: 3.1 }, // Luffield cornering
+  { p: 0.49, speed: 175, throttle: 90,  brake: 0,  latG: 2.4 }, // Woodcote exit
+  { p: 0.55, speed: 292, throttle: 100, brake: 0,  latG: 0.4 }, // Approach Copse
+  { p: 0.58, speed: 282, throttle: 88,  brake: 8,  latG: 5.1 }, // Copse Corner
+  { p: 0.63, speed: 260, throttle: 78,  brake: 18, latG: 4.6 }, // Maggotts
+  { p: 0.67, speed: 212, throttle: 65,  brake: 28, latG: 4.2 }, // Becketts
+  { p: 0.71, speed: 248, throttle: 95,  brake: 0,  latG: 2.1 }, // Chapel exit
+  { p: 0.77, speed: 318, throttle: 100, brake: 0,  latG: 0.2 }, // Hangar Straight
+  { p: 0.83, speed: 336, throttle: 100, brake: 0,  latG: 0.2 }, // End Hangar Straight
+  { p: 0.86, speed: 182, throttle: 0,   brake: 94, latG: 2.6 }, // Stowe braking
+  { p: 0.90, speed: 92,  throttle: 0,   brake: 96, latG: 1.6 }, // Vale Chicane
+  { p: 0.93, speed: 138, throttle: 85,  brake: 0,  latG: 2.9 }, // Club entry
+  { p: 0.97, speed: 235, throttle: 100, brake: 0,  latG: 1.1 }, // Club exit onto straight
+];
+
 export default function TrackSimulation({
   raceState,
   prediction,
@@ -178,7 +213,6 @@ export default function TrackSimulation({
 
   // Telemetry attributes
   const action = prediction?.action ?? 'HOLD';
-  const speed = raceState?.speed_kph ?? (isRunning ? 292 : 0);
   const ers = raceState?.ers_pct ?? 65;
   const gapAhead = raceState?.gap_ahead_s ?? 1.34;
   const currentLap = raceState?.lap ?? 1;
@@ -189,17 +223,16 @@ export default function TrackSimulation({
   const isDrsZone = carProgress > 0.88 || carProgress < 0.14;
   const isDrsActive = isDrsZone && (action === 'OVERTAKE' || gapAhead <= 1.0);
 
-  // Dynamic Telemetry: Throttle, Brake, Gear, Shifts, RPM, G-Force based on track sectors
+  // Dynamic Telemetry: Throttle, Brake, Gear, Shifts, RPM, G-Force based on realistic Silverstone circuit profile
   const telemetryDynamics = useMemo(() => {
-    const isHeavyBrakingZone = (carProgress > 0.72 && carProgress < 0.78) || (carProgress > 0.33 && carProgress < 0.38);
-    const isHighSpeedStraight = carProgress > 0.85 || carProgress < 0.15 || (carProgress > 0.50 && carProgress < 0.62);
-
     if (!isRunning) {
       return {
+        speed: raceState?.speed_kph ?? 0,
         throttle: 0,
         brake: 0,
         gear: 1,
         rpm: 4200,
+        activeLeds: 0,
         latG: 0,
         lonG: 0,
         brakeTemp: 450,
@@ -208,55 +241,115 @@ export default function TrackSimulation({
       };
     }
 
-    let throttle = 85;
-    let brake = 0;
-    let gear = 7;
-    let rpm = 11800;
-    let latG = 1.2;
-    let lonG = 0.8;
-    let shiftState: 'UPSHIFT' | 'DOWNSHIFT' | 'HOLD' | 'NEUTRAL' = 'HOLD';
+    // Find enclosing waypoints along Silverstone circuit
+    const n = CIRCUIT_WAYPOINTS.length;
+    let idx = 0;
+    for (let i = 0; i < n; i++) {
+      if (CIRCUIT_WAYPOINTS[i].p <= carProgress) {
+        idx = i;
+      }
+    }
+    const nextIdx = (idx + 1) % n;
+    const w0 = CIRCUIT_WAYPOINTS[idx];
+    const w1 = CIRCUIT_WAYPOINTS[nextIdx];
 
-    if (isHeavyBrakingZone) {
-      throttle = 0;
-      brake = 95;
-      gear = 3;
-      rpm = 9600;
-      latG = 1.8;
-      lonG = -4.4; // heavy deceleration
-      shiftState = 'DOWNSHIFT';
-    } else if (isHighSpeedStraight) {
-      throttle = isDrsActive ? 100 : 98;
-      brake = 0;
-      gear = 8;
-      rpm = isDrsActive ? 12850 : 12400;
-      latG = 0.4;
-      lonG = 1.9; // acceleration
-      shiftState = 'UPSHIFT';
-    } else {
-      // Cornering
-      throttle = 58;
-      brake = 12;
-      gear = 4;
-      rpm = 10500;
-      latG = 3.6; // High lateral cornering G
-      lonG = -0.4;
-      shiftState = 'HOLD';
+    let span = w1.p - w0.p;
+    if (span <= 0) span += 1;
+    let offset = carProgress - w0.p;
+    if (offset < 0) offset += 1;
+    const t = Math.max(0, Math.min(1, offset / span));
+    const s = 0.5 - 0.5 * Math.cos(t * Math.PI);
+
+    let speed = Math.round(w0.speed + (w1.speed - w0.speed) * s);
+    let throttle = Math.round(w0.throttle + (w1.throttle - w0.throttle) * s);
+    let brake = Math.round(w0.brake + (w1.brake - w0.brake) * s);
+    const latG = parseFloat((w0.latG + (w1.latG - w0.latG) * s).toFixed(1));
+
+    if (isDrsActive && throttle > 90) {
+      speed += 12;
     }
 
-    const brakeTemp = isHeavyBrakingZone ? 820 : 640;
-    const totalShifts = Math.min(52, Math.max(6, Math.round(48 * (carProgress || 0.1))));
+    const speedDelta = w1.speed - w0.speed;
+    const isAccelerating = speedDelta >= 0;
+    const lonG = parseFloat((isAccelerating ? Math.min(2.4, (throttle / 100) * 2.2) : -Math.min(5.2, (brake / 100) * 5.0)).toFixed(1));
 
-    return { throttle, brake, gear, rpm, latG, lonG, brakeTemp, shiftState, totalShifts };
-  }, [carProgress, isDrsActive, isRunning]);
+    // Gear envelopes for authentic progressive rev build-up & shift points
+    const GEARS_ACCEL = [
+      { gear: 2, vMin: 72,  vMax: 118 },
+      { gear: 3, vMin: 110, vMax: 158 },
+      { gear: 4, vMin: 150, vMax: 202 },
+      { gear: 5, vMin: 194, vMax: 248 },
+      { gear: 6, vMin: 238, vMax: 288 },
+      { gear: 7, vMin: 278, vMax: 320 },
+      { gear: 8, vMin: 310, vMax: 350 },
+    ];
+
+    const GEARS_DECEL = [
+      { gear: 2, vMin: 70,  vMax: 110 },
+      { gear: 3, vMin: 100, vMax: 150 },
+      { gear: 4, vMin: 140, vMax: 195 },
+      { gear: 5, vMin: 185, vMax: 240 },
+      { gear: 6, vMin: 230, vMax: 280 },
+      { gear: 7, vMin: 270, vMax: 315 },
+      { gear: 8, vMin: 305, vMax: 350 },
+    ];
+
+    const gears = isAccelerating ? GEARS_ACCEL : GEARS_DECEL;
+    let gInfo = gears[0];
+    for (let i = 0; i < gears.length; i++) {
+      if (speed >= gears[i].vMin) {
+        gInfo = gears[i];
+      }
+    }
+
+    const revRatio = Math.max(0, Math.min(1, (speed - gInfo.vMin) / (gInfo.vMax - gInfo.vMin)));
+
+    // Accurate 15-LED progressive activation (all 15 light up sequentially until upshift)
+    let activeLeds = Math.min(15, Math.floor(revRatio * 15.8));
+    let rpm = Math.round(9800 + revRatio * 3050);
+    let shiftState: 'UPSHIFT' | 'DOWNSHIFT' | 'HOLD' | 'NEUTRAL' = 'HOLD';
+
+    if (isAccelerating) {
+      if (activeLeds >= 14 || revRatio >= 0.93) {
+        shiftState = 'UPSHIFT';
+        activeLeds = 15; // Max out at shift point
+      } else {
+        shiftState = 'HOLD';
+      }
+    } else {
+      if (brake > 35) {
+        shiftState = 'DOWNSHIFT';
+        // Throttle blip on downshift (realistic F1 rev match)
+        rpm = 10800 + ((gInfo.gear % 2) * 500);
+        activeLeds = gInfo.gear % 2 === 0 ? 8 : 7;
+      }
+    }
+
+    const brakeTemp = brake > 50 ? 840 : 640;
+    const totalShifts = Math.min(52, Math.max(6, Math.round(50 * (carProgress || 0.1))));
+
+    return {
+      speed,
+      throttle,
+      brake,
+      gear: gInfo.gear,
+      rpm,
+      activeLeds,
+      latG,
+      lonG,
+      brakeTemp,
+      shiftState,
+      totalShifts,
+    };
+  }, [carProgress, isDrsActive, isRunning, raceState?.speed_kph]);
+
+  const speed = isRunning ? telemetryDynamics.speed : (raceState?.speed_kph ?? 0);
+  const activeLeds = telemetryDynamics.activeLeds;
 
   // Dynamic SVG ViewBox for Camera Follow Mode
   const viewBox = cameraFollow
     ? `${Math.max(0, Math.min(carState.sazi.x - 220, TRACK_WIDTH - 440))} ${Math.max(0, Math.min(carState.sazi.y - 150, TRACK_HEIGHT - 300))} 440 300`
     : `0 0 ${TRACK_WIDTH} ${TRACK_HEIGHT}`;
-
-  // RPM LEDs (15 LEDs across rev spectrum)
-  const rpmRatio = Math.max(0, Math.min(1, (telemetryDynamics.rpm - 8000) / 5000));
-  const activeLeds = Math.round(rpmRatio * 15);
 
   // ── Advanced Telemetry Derivations ──────────────────────────────────────────
   // 1. Tyre Degradation (Silverstone front-right loaded)
@@ -985,14 +1078,18 @@ export default function TrackSimulation({
               </div>
             </div>
 
-            {/* LED Rev Lights */}
-            <div className="track-sim__onboard-leds">
-              {Array.from({ length: 15 }).map((_, i) => (
-                <span
-                  key={i}
-                  className={`track-sim__led ${i < activeLeds ? (i < 5 ? 'track-sim__led--green' : i < 10 ? 'track-sim__led--yellow' : 'track-sim__led--red') : ''}`}
-                />
-              ))}
+            {/* LED Rev Lights (Circular F1 Steering Wheel Array) */}
+            <div className={`track-sim__onboard-leds ${activeLeds === 15 ? 'shift-flash' : ''}`}>
+              {Array.from({ length: 15 }).map((_, i) => {
+                const isLit = i < activeLeds;
+                const ledColor = i < 5 ? 'green' : i < 10 ? 'yellow' : i < 13 ? 'red' : 'blue';
+                return (
+                  <span
+                    key={i}
+                    className={`track-sim__led track-sim__led--${ledColor} ${isLit ? 'lit' : ''}`}
+                  />
+                );
+              })}
             </div>
 
             {/* Mini Telemetry Strip: Battery %, Net Power Flow kW, Tyre Deg %, and Efficiency */}
@@ -1043,7 +1140,7 @@ export default function TrackSimulation({
           <div className="track-sim__cockpit-rev-cluster">
             <div className="track-sim__cockpit-rev-header">
               <span className="track-sim__cockpit-rpm-lbl">REV LIGHTS</span>
-              <div className="track-sim__cockpit-led-strip">
+              <div className={`track-sim__cockpit-led-strip ${activeLeds === 15 ? 'shift-flash' : ''}`}>
                 {Array.from({ length: 15 }).map((_, i) => {
                   const isLit = i < activeLeds;
                   const ledColor = i < 5 ? 'green' : i < 10 ? 'yellow' : i < 13 ? 'red' : 'blue';
