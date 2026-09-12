@@ -394,8 +394,8 @@ export default function TrackSimulation({
   const boostTimeRemainingS = ((batteryPercentLeft / 100 * 4000) / 120).toFixed(1);
 
   // 3. Discharge & Recharge Rates
-  const isHighThrottle = telemetryDynamics.throttle > 80;
-  const isBraking = telemetryDynamics.brake > 40;
+  const isHighThrottle = telemetryDynamics.throttle > 75;
+  const isBraking = telemetryDynamics.brake > 35;
 
   const dischargeRateKw = action === 'OVERTAKE' || isHighThrottle
     ? (raceState?.discharge_rate_kw ?? 120.0)

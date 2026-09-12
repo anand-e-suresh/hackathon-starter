@@ -38,6 +38,9 @@ let _energyDeployed = 0.6;
 const TOTAL_LAPS = 52; // Silverstone Grand Prix race distance (5.891 km x 52 laps = 306.198 km)
 const BUDGET_MJ = 4.0;  // FIA Technical Regulation Article 5.2.2 max per-lap ERS deployment limit
 
+// Active strategy action to synchronize battery deployment and recovery with AI strategy
+let _lastAction: PredictResponse['action'] = 'HOLD';
+
 export function resetMockState() {
   _lap = 1;
   _pos = 7;
@@ -46,21 +49,48 @@ export function resetMockState() {
   _gapBehind = 0.8;
   _speed = 285;
   _energyDeployed = 0.6;
+  _lastAction = 'HOLD';
+}
+
+export function setPredictedAction(action: PredictResponse['action']) {
+  _lastAction = action;
 }
 
 export function generateRaceState(): RaceState {
-  // Drift values slightly each tick
-  _ers = clamp(_ers + rand(-2, 1), 5, 100);
-  _gapAhead = clamp(_gapAhead + rand(-0.15, 0.15), 0.1, 4.0);
-  _gapBehind = clamp(_gapBehind + rand(-0.1, 0.1), 0.05, 5.0);
-  _speed = clamp(_speed + rand(-8, 8), 240, 335);
-  _energyDeployed = clamp(_energyDeployed + rand(0, 0.08), 0, BUDGET_MJ);
-
+  // Determine driving mode from current speed dynamics & active AI strategy
   const isHighThrottle = _speed > 280;
   const isBraking = _speed < 245;
 
-  const dischargeKw = isHighThrottle ? 120.0 : isBraking ? 0.0 : 42.5;
-  const rechargeKw = isBraking ? 120.0 : isHighThrottle ? 0.0 : 35.0;
+  // Real-world Formula 1 ERS Energy Dynamics (FIA Article 5.2.2: 4.00 MJ usable battery capacity):
+  // 1. When overtaking / attacking (high speed & full throttle deployment):
+  //    MGU-K discharges at peak 120 kW (160 BHP) -> Battery clearly decreases (-3.0% to -6.5% per tick)
+  //    Energy deployed increases up towards 4.00 MJ budget.
+  // 2. When braking / regenerating (corners, decel, RECOVER mode):
+  //    MGU-K captures kinetic energy at up to 120 kW regen -> Battery clearly increases (+2.5% to +5.5% per tick)
+  // 3. When holding / tactical cruising:
+  //    Gentle drift balancing high-speed drag against MGU-H turbo thermal recovery (-0.5% to +0.5%)
+  if (_lastAction === 'OVERTAKE' || isHighThrottle || _speed > 300) {
+    // Aggressive attack / overtake discharge
+    const dischargeDelta = rand(3.2, 5.8);
+    _ers = clamp(_ers - dischargeDelta, 6, 100);
+    _energyDeployed = clamp(_energyDeployed + rand(0.18, 0.35), 0, BUDGET_MJ);
+  } else if (_lastAction === 'RECOVER' || isBraking || _speed < 245) {
+    // Deceleration / Kinetic braking regeneration (MGU-K 120 kW + MGU-H heat harvest)
+    const regenDelta = rand(2.8, 5.2);
+    _ers = clamp(_ers + regenDelta, 6, 98);
+  } else {
+    // Tactical hold / cruise: slight balanced thermal drift
+    _ers = clamp(_ers + rand(-0.8, 0.4), 6, 100);
+    _energyDeployed = clamp(_energyDeployed + rand(0.01, 0.04), 0, BUDGET_MJ);
+  }
+
+  // Drift gaps and speeds realistically along racing line
+  _gapAhead = clamp(_gapAhead + rand(-0.15, 0.15), 0.1, 4.0);
+  _gapBehind = clamp(_gapBehind + rand(-0.1, 0.1), 0.05, 5.0);
+  _speed = clamp(_speed + rand(-8, 8), 240, 335);
+
+  const dischargeKw = (_lastAction === 'OVERTAKE' || isHighThrottle) ? 120.0 : isBraking ? 0.0 : 42.5;
+  const rechargeKw = (_lastAction === 'RECOVER' || isBraking) ? 120.0 : isHighThrottle ? 0.0 : 35.0;
   const tyreDeg = clamp(parseFloat(((_lap * 0.42) + 5.8).toFixed(1)), 5.0, 95.0);
   const efficiency = parseFloat((94.2 + rand(-0.4, 0.4)).toFixed(1));
 
@@ -156,6 +186,9 @@ export function generatePrediction(state: RaceState): PredictResponse {
   } else {
     action = ACTIONS[Math.floor(Math.random() * 3)];
   }
+
+  // Update lastAction to drive corresponding MGU-K battery decrease/increase
+  _lastAction = action;
 
   const reasons = REASONS[action];
   const reason = reasons[Math.floor(Math.random() * reasons.length)];
