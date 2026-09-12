@@ -1,16 +1,19 @@
 """
 ML Integration Adapter
-Acts as the interface between the Backend service and Person 1's ML package.
-Provides an intelligent heuristic stub until Person 1's ml/predict.py and ml/baseline.py
+Acts as the interface between the Backend service and Person 1's AI package.
+Provides an intelligent heuristic stub until Person 1's ai/src/predict.py and ai/src/baseline.py
 are merged into the repository.
 """
 import os
+import logging
 from typing import Dict, Any
+
+logger = logging.getLogger(__name__)
 
 # Check if real ML package is available
 try:
-    from ml.predict import predict as real_ml_predict  # type: ignore
-    from ml.baseline import baseline_predict as real_baseline_predict  # type: ignore
+    from ai.src.predict import predict as real_ml_predict  # type: ignore
+    from ai.src.baseline import predict_baseline as real_baseline_predict  # type: ignore
     HAS_REAL_ML = True
 except ImportError:
     HAS_REAL_ML = False
@@ -132,14 +135,16 @@ def get_decision(state: Dict[str, Any], use_baseline: bool = False) -> Dict[str,
         if HAS_REAL_ML and not force_stub:
             try:
                 return real_baseline_predict(state)
-            except Exception:
+            except Exception as e:
+                logger.error(f"Real ML baseline failed: {e}")
                 return _rule_based_baseline_predict(state)
         return _rule_based_baseline_predict(state)
 
     if HAS_REAL_ML and not force_stub:
         try:
             return real_ml_predict(state)
-        except Exception:
+        except Exception as e:
+            logger.error(f"Real ML predict failed: {e}")
             return _heuristic_ml_predict(state)
 
     return _heuristic_ml_predict(state)
