@@ -10,7 +10,7 @@
  * - F1 TV Broadcast Onboard Telemetry Halo Graphic floating on circuit canvas
  */
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { Zap, Eye, Flag, ChevronDown, ChevronUp, Gauge, Thermometer, Wind, ArrowUp, ArrowDown } from 'lucide-react';
+import { Zap, Eye, Flag, ChevronDown, ChevronUp, Gauge, Thermometer, Wind, ArrowUp, ArrowDown, Timer } from 'lucide-react';
 import type { RaceState, PredictResponse } from '../api/client';
 import './TrackSimulation.css';
 
@@ -222,7 +222,9 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             <span className={`track-sim__pulse-dot ${isRunning ? 'track-sim__pulse-dot--active' : ''}`} />
             LIVE 2D CIRCUIT
           </div>
-          <span className="track-sim__circuit-name">SAZI INTERNATIONAL GRAND PRIX CIRCUIT • ASPHALT GRADE 1</span>
+          <span className="track-sim__circuit-name">
+            SILVERSTONE GRAND PRIX CIRCUIT • UK • 5.891 KM • LAP RECORD: 1:27.097 (M. VERSTAPPEN)
+          </span>
         </div>
 
         {/* Primary telemetry pills */}
@@ -564,6 +566,45 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
           <text x="770" y="130" className="track-sim__sector-split-text">INT 1 (SECTOR 1)</text>
           <text x="260" y="190" className="track-sim__sector-split-text">INT 2 (SECTOR 2)</text>
 
+          {/* Silverstone Iconic Corners & Straights (Clean Off-Track Labels) */}
+          <g className="track-sim__corner-annotations">
+            {/* Start / Finish & Hamilton Straight */}
+            <text x="450" y="445" className="track-sim__corner-label">HAMILTON STRAIGHT (START/FINISH)</text>
+
+            {/* Abbey & Farm (T1 - T2) */}
+            <text x="815" y="442" className="track-sim__corner-label track-sim__corner-label--apex">ABBEY & FARM (T1-T2)</text>
+
+            {/* Village & The Loop (T3 - T4) */}
+            <text x="880" y="270" className="track-sim__corner-label track-sim__corner-label--apex">THE LOOP (T4 • 78 KM/H)</text>
+
+            {/* Wellington Straight (DRS Zone 1) */}
+            <text x="770" y="98" className="track-sim__corner-label track-sim__corner-label--drs">WELLINGTON STRAIGHT (DRS 1)</text>
+
+            {/* Brooklands & Luffield (T6 - T7) */}
+            <text x="590" y="112" className="track-sim__corner-label track-sim__corner-label--apex">BROOKLANDS & LUFFIELD (T6-T7)</text>
+
+            {/* Copse Corner (T9 - High Speed) */}
+            <text x="475" y="202" className="track-sim__corner-label track-sim__corner-label--apex">COPSE (T9 • 290 KM/H • 5.2G)</text>
+
+            {/* Maggotts & Becketts (T10 - T13) */}
+            <text x="235" y="18" className="track-sim__corner-label track-sim__corner-label--apex">MAGGOTTS & BECKETTS (T10-T13)</text>
+
+            {/* Chapel Curve (T14) */}
+            <text x="140" y="18" className="track-sim__corner-label">CHAPEL (T14)</text>
+
+            {/* Hangar Straight (DRS Zone 2) */}
+            <text x="42" y="130" transform="rotate(-90 42 130)" className="track-sim__corner-label track-sim__corner-label--drs">
+              HANGAR STRAIGHT (DRS 2 • 335 KM/H)
+            </text>
+
+            {/* Stowe Corner (T15) */}
+            <text x="40" y="235" className="track-sim__corner-label track-sim__corner-label--apex">STOWE (T15 • -4.8G)</text>
+
+            {/* Vale & Club (T16 - T18) */}
+            <text x="230" y="312" className="track-sim__corner-label track-sim__corner-label--apex">VALE (T16)</text>
+            <text x="495" y="375" className="track-sim__corner-label track-sim__corner-label--apex">CLUB (T18)</text>
+          </g>
+
           {/* Hidden reference path for exact coordinate sampling */}
           <path ref={pathRef} d={CIRCUIT_PATH} fill="none" stroke="none" />
 
@@ -828,7 +869,7 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
               <div className="track-sim__stat-pair">
                 <span>DRS SPEED ADVANTAGE:</span>
                 <strong className="mono" style={{ color: 'var(--accent)' }}>
-                  +12.8 KM/H TOP SPEED DELTA (320 KM/H SPEED TRAP)
+                  +13.4 KM/H DELTA (335 KM/H HANGAR STRAIGHT TRAP)
                 </strong>
               </div>
 
@@ -845,8 +886,8 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
               </div>
 
               <div className="track-sim__stat-pair">
-                <span>DRS ACTIVATION ZONE:</span>
-                <strong className="mono">MAIN STRAIGHT • 680 METERS</strong>
+                <span>DRS ACTIVATION ZONES:</span>
+                <strong className="mono">ZONE 1: WELLINGTON (480M) • ZONE 2: HANGAR (750M)</strong>
               </div>
             </div>
           </div>
@@ -902,45 +943,85 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
               <span>TIRES, G-FORCE & THERMALS</span>
             </div>
             <div className="track-sim__drawer-body">
+              {/* Compound spec */}
+              <div className="track-sim__stat-pair">
+                <span>SPECIFICATION:</span>
+                <strong className="mono" style={{ color: '#fbbf24' }}>PIRELLI P-ZERO C3 MEDIUM (YELLOW)</strong>
+              </div>
+
               {/* 4 Corner Tires */}
               <div className="track-sim__tires-grid">
                 <div className="track-sim__tire-cell">
                   <span className="track-sim__tire-pos">FL</span>
                   <span className="track-sim__tire-temp">102°C</span>
-                  <span className="track-sim__tire-psi">22.4 PSI</span>
+                  <span className="track-sim__tire-psi">23.5 PSI</span>
                 </div>
                 <div className="track-sim__tire-cell">
                   <span className="track-sim__tire-pos">FR</span>
-                  <span className="track-sim__tire-temp">104°C</span>
-                  <span className="track-sim__tire-psi">22.6 PSI</span>
+                  <span className="track-sim__tire-temp">105°C</span>
+                  <span className="track-sim__tire-psi">23.8 PSI</span>
                 </div>
                 <div className="track-sim__tire-cell">
                   <span className="track-sim__tire-pos">RL</span>
                   <span className="track-sim__tire-temp">99°C</span>
-                  <span className="track-sim__tire-psi">20.8 PSI</span>
+                  <span className="track-sim__tire-psi">21.0 PSI</span>
                 </div>
                 <div className="track-sim__tire-cell">
                   <span className="track-sim__tire-pos">RR</span>
                   <span className="track-sim__tire-temp">101°C</span>
-                  <span className="track-sim__tire-psi">21.0 PSI</span>
+                  <span className="track-sim__tire-psi">21.2 PSI</span>
                 </div>
               </div>
 
               <div className="track-sim__stat-pair">
                 <span>LATERAL CORNERING G:</span>
-                <strong className="mono">{telemetryDynamics.latG.toFixed(1)} G (APEX LOAD)</strong>
+                <strong className="mono">{telemetryDynamics.latG.toFixed(1)} G (PEAK 5.2G COPSE)</strong>
               </div>
 
               <div className="track-sim__stat-pair">
                 <span>LONGITUDINAL G:</span>
-                <strong className="mono">{telemetryDynamics.lonG > 0 ? `+${telemetryDynamics.lonG.toFixed(1)}` : telemetryDynamics.lonG.toFixed(1)} G</strong>
+                <strong className="mono">{telemetryDynamics.lonG > 0 ? `+${telemetryDynamics.lonG.toFixed(1)}` : telemetryDynamics.lonG.toFixed(1)} G (DECEL -4.8G)</strong>
               </div>
 
               <div className="track-sim__stat-pair">
                 <span>CARBON BRAKE DISCS:</span>
                 <strong className="mono" style={{ color: telemetryDynamics.brakeTemp > 800 ? '#ef4444' : '#f59e0b' }}>
-                  {telemetryDynamics.brakeTemp}°C (PEAK HEAVY BRAKING)
+                  {telemetryDynamics.brakeTemp}°C (VALE/BROOKLANDS)
                 </strong>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 5: Silverstone Grand Prix Circuit Benchmarks & Weather */}
+          <div className="track-sim__drawer-card">
+            <div className="track-sim__drawer-header">
+              <Timer size={13} />
+              <span>SILVERSTONE GP BENCHMARKS</span>
+            </div>
+            <div className="track-sim__drawer-body">
+              <div className="track-sim__stat-pair">
+                <span>CIRCUIT SPEC:</span>
+                <strong className="mono">5.891 KM • 18 TURNS • 52 LAPS</strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>OFFICIAL LAP RECORD:</span>
+                <strong className="mono" style={{ color: 'var(--accent)' }}>1:27.097 (M. VERSTAPPEN, 2020)</strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>SECTOR BENCHMARKS:</span>
+                <strong className="mono">S1: 27.84s | S2: 34.91s | S3: 24.34s</strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>CONDITIONS:</span>
+                <strong className="mono">TRACK: 34.2°C • AIR: 22.8°C • DRY</strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>FIA FUEL FLOW:</span>
+                <strong className="mono">98.4 KG/H (100.0 KG/H REGULATION CAP)</strong>
               </div>
             </div>
           </div>

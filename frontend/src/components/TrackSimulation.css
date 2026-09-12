@@ -334,6 +334,31 @@
   text-anchor: middle;
 }
 
+.track-sim__corner-label {
+  font-family: var(--font-mono);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  fill: #94a3b8;
+  text-anchor: middle;
+  paint-order: stroke fill;
+  stroke: rgba(10, 15, 25, 0.9);
+  stroke-width: 2.5px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.track-sim__corner-label--drs {
+  fill: #38bdf8;
+  font-weight: 800;
+}
+
+.track-sim__corner-label--apex {
+  fill: #f59e0b;
+  font-weight: 800;
+}
+
 /* ── Realistic 3D F1 Car Elements ────────────────────────────── */
 .track-sim__car-label {
   font-family: var(--font-mono);
@@ -574,7 +599,7 @@
 /* ── Detailed Telemetry Statistics Drawer ────────────────────── */
 .track-sim__telemetry-drawer {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 12px;
   padding: 14px 18px;
   background: var(--bg-surface);

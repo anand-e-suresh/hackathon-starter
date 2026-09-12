@@ -35,8 +35,8 @@ let _gapAhead = 1.2;
 let _gapBehind = 0.8;
 let _speed = 285;
 let _energyDeployed = 0.6;
-const TOTAL_LAPS = 57;
-const BUDGET_MJ = 4.0;
+const TOTAL_LAPS = 52; // Silverstone Grand Prix race distance (5.891 km x 52 laps = 306.198 km)
+const BUDGET_MJ = 4.0;  // FIA Technical Regulation Article 5.2.2 max per-lap ERS deployment limit
 
 export function resetMockState() {
   _lap = 1;
@@ -53,7 +53,7 @@ export function generateRaceState(): RaceState {
   _ers = clamp(_ers + rand(-2, 1), 5, 100);
   _gapAhead = clamp(_gapAhead + rand(-0.15, 0.15), 0.1, 4.0);
   _gapBehind = clamp(_gapBehind + rand(-0.1, 0.1), 0.05, 5.0);
-  _speed = clamp(_speed + rand(-8, 8), 240, 330);
+  _speed = clamp(_speed + rand(-8, 8), 240, 335);
   _energyDeployed = clamp(_energyDeployed + rand(0, 0.08), 0, BUDGET_MJ);
 
   return {
@@ -83,19 +83,22 @@ export function advanceLap() {
 const ACTIONS: PredictResponse['action'][] = ['OVERTAKE', 'HOLD', 'RECOVER'];
 const REASONS: Record<PredictResponse['action'], string[]> = {
   OVERTAKE: [
-    'Car ahead is within attack range and sufficient ERS is available.',
-    'Gap ahead is below 1.0s — optimal overtake window detected.',
-    'High deployment budget remaining. Attack opportunity is high.',
+    'Hangar Straight DRS enabled + MGU-K 120kW attack mode active. Delta to VER: -0.34s.',
+    'Optimal ERS deploy window out of Chapel: 334 km/h speed trap advantage into Stowe.',
+    'Battery SOC at 76%. High deployment budget remaining (2.85 MJ) for Wellington Straight overtake.',
+    'Slipstream delta -0.42s detected behind NOR. Full 160 BHP hybrid boost deployed into Brooklands.',
   ],
   HOLD: [
-    'ERS reserves are insufficient for a clean overtake attempt.',
-    'Gap ahead is closing but deployment budget is limited.',
-    'Maintain position — pace delta does not justify energy expenditure.',
+    'Turbulent dirty air in Maggotts-Becketts complex (-18% downforce). Holding energy reserve at 3.12 MJ.',
+    'Preserving rear Pirelli C3 tire thermals (104°C). Conserving deployment budget for Hangar Straight DRS.',
+    'Maintaining 1.2s tactical gap to manage battery core temperatures (52°C) and avoid thermal derate.',
+    'Deployment budget limited (0.85 MJ remaining). Holding position until Sector 1 recovery phase.',
   ],
   RECOVER: [
-    'ERS critically low — recovery phase required to restore deployment capacity.',
-    'Battery below 30% — prioritise regeneration to preserve strategic options.',
-    'Energy conservation mode activated to rebuild deployment budget.',
+    'MGU-K kinetic energy harvesting (+85 kW) active under -4.8G braking into Brooklands & Vale chicane.',
+    'Battery state of charge depleted below 32%. Regenerating 0.45 MJ before Wellington Straight.',
+    'Lift-and-coast strategy activated into Turn 15 to maintain FIA Article 5.2.2 compliance (4.0 MJ/lap).',
+    'MGU-H heat recovery charging accumulator to rebuild strategic deployment quota for final laps.',
   ],
 };
 
