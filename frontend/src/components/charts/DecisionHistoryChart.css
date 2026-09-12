@@ -1,0 +1,129 @@
+/* DecisionHistoryChart.css */
+
+.dhc__legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dhc__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.dhc__legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.dhc__legend-dot--adjusted {
+  background: transparent;
+  border: 1px solid var(--warning);
+  position: relative;
+}
+
+/* Timeline strip */
+.dhc__strip {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 2px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.dhc__cell {
+  flex-shrink: 0;
+  width: 22px;
+  height: 36px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--action-color) 20%, var(--bg-surface));
+  border-top: 3px solid var(--action-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  position: relative;
+  transition: transform 0.1s ease;
+}
+
+.dhc__cell:hover {
+  transform: scaleY(1.08);
+  background: color-mix(in srgb, var(--action-color) 30%, var(--bg-surface));
+}
+
+.dhc__cell--adjusted {
+  border-top-color: var(--warning);
+  background: rgba(245, 200, 66, 0.08);
+}
+
+.dhc__cell-label {
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--action-color);
+  letter-spacing: 0.02em;
+}
+
+.dhc__adjusted-marker {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--warning);
+}
+
+/* Axis */
+.dhc__axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  padding: 0 2px;
+}
+
+/* Summary */
+.dhc__summary {
+  display: flex;
+  gap: 16px;
+  padding: 8px 0 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.dhc__summary-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dhc__summary-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.dhc__summary-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+}
+
+.dhc__summary-count {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}

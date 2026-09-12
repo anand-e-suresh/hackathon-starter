@@ -1,0 +1,215 @@
+/* RaceStateBar.css */
+
+.rsb {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 72px;
+  position: relative;
+  overflow: hidden;
+}
+
+.rsb::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent) 0%, transparent 100%);
+  opacity: 0.4;
+}
+
+.rsb--empty {
+  justify-content: center;
+  min-height: 64px;
+}
+
+.rsb__waiting {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.rsb__metrics {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.rsb__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 20px;
+}
+
+.rsb__metric--wide {
+  flex: 1;
+  min-width: 120px;
+}
+
+.rsb__label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.rsb__value {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: color var(--transition);
+}
+
+.rsb__value--large {
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rsb__value--accent { color: var(--accent); }
+.rsb__value--dim    { color: var(--text-muted); font-size: 14px; }
+
+.rsb__unit {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-left: 2px;
+}
+
+/* ERS */
+.rsb__ers-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rsb__ers--high   { color: var(--success); }
+.rsb__ers--medium { color: var(--warning); }
+.rsb__ers--low    { color: var(--danger); }
+
+.rsb__ers-bar {
+  width: 60px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.rsb__ers-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+.rsb__ers-fill--high   { background: var(--success); }
+.rsb__ers-fill--medium { background: var(--warning); }
+.rsb__ers-fill--low    { background: var(--danger); }
+
+/* Gap colours */
+.warning { color: var(--warning); }
+.danger  { color: var(--danger); }
+
+/* Position change */
+.rsb__pos { position: relative; }
+.rsb__pos-icon { margin-left: 4px; }
+.pos-up   { color: var(--success); }
+.pos-down { color: var(--danger); }
+
+.rsb__pos.improved {
+  animation: fade-in 0.3s ease;
+  color: var(--success);
+}
+.rsb__pos.lost {
+  animation: fade-in 0.3s ease;
+  color: var(--danger);
+}
+
+/* Race progress */
+.rsb__progress-bar {
+  position: relative;
+  width: 100%;
+  max-width: 180px;
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: visible;
+  margin-top: 2px;
+}
+
+.rsb__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, rgba(0,212,255,0.5) 100%);
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+.rsb__progress-pct {
+  position: absolute;
+  right: 0;
+  top: -16px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+/* Divider */
+.rsb__divider {
+  width: 1px;
+  height: 32px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+/* Status badge */
+.rsb__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.rsb__status--live {
+  background: rgba(61, 214, 140, 0.1);
+  color: var(--success);
+  border: 1px solid rgba(61, 214, 140, 0.25);
+}
+
+.rsb__status--paused {
+  background: rgba(245, 200, 66, 0.08);
+  color: var(--warning);
+  border: 1px solid rgba(245, 200, 66, 0.2);
+}
+
+.rsb__status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.rsb__status--live .rsb__status-dot {
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
