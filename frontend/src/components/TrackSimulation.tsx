@@ -2,25 +2,15 @@
  * TrackSimulation.tsx
  * Ultra-Realistic 2D Grand Prix Live Circuit Simulation with 3D-styled F1 Cars & Advanced Telemetry.
  *
- * Features:
- * - Real asphalt road texture, inner/outer solid white edge markings, grid slots, and gravel runoffs
- * - Red & white alternating apex curbs, distance boards (150m/100m/50m), pit lane, and DRS zones
- * - Detailed 3D-styled F1 cars with chassis depth, aerodynamic wings, halo, Pirelli colored tires & driver helmet
- * - Real-time state reactions:
- *     - OVERTAKE: Open DRS wing, twin aerodynamic wake vortices & speed blur
- *     - RECOVER: Green MGU-K energy harvesting halo & regeneration sparks
- *     - HOLD: Laminar aerodynamic slipstream
- * - Advanced Telemetry HUD:
- *     - Live Throttle & Brake pedal inputs
- *     - Current Gear & RPM with LED rev-limiter lights
- *     - Lateral & Longitudinal G-Force meter
- *     - 4-Corner Tire Temperatures & Pressures (FL, FR, RL, RR)
- *     - Carbon brake disc temperatures
- *     - Sector splits (S1/S2/S3) & Delta to best lap
- *     - Weather & Track temperature
+ * Explicit telemetry features:
+ * - Throttle Inputs & Brake Inputs (live percentages, pedal bars, and telemetry trace)
+ * - Gear Change Statistics (gear 1-8, upshift/downshift indicators, and total shifts/lap)
+ * - Comprehensive DRS Intelligence (wing state, speed delta +12.8kph, drag reduction, gap threshold)
+ * - Detailed ERS Hybrid Power (MGU-K deployment kW, battery storage %, FIA 4MJ budget, regeneration)
+ * - F1 TV Broadcast Onboard Telemetry Halo Graphic floating on circuit canvas
  */
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { Zap, Eye, Flag, ChevronDown, ChevronUp, Radio, Gauge, Thermometer, Wind } from 'lucide-react';
+import { Zap, Eye, Flag, ChevronDown, ChevronUp, Gauge, Thermometer, Wind, ArrowUp, ArrowDown } from 'lucide-react';
 import type { RaceState, PredictResponse } from '../api/client';
 import './TrackSimulation.css';
 
@@ -163,7 +153,7 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
   const isDrsZone = carProgress > 0.88 || carProgress < 0.14;
   const isDrsActive = isDrsZone && (action === 'OVERTAKE' || gapAhead <= 1.0);
 
-  // Dynamic Telemetry: Throttle, Brake, Gear, RPM, G-Force based on circuit curve and action
+  // Dynamic Telemetry: Throttle, Brake, Gear, Shifts, RPM, G-Force based on track sectors
   const telemetryDynamics = useMemo(() => {
     const isHeavyBrakingZone = (carProgress > 0.72 && carProgress < 0.78) || (carProgress > 0.33 && carProgress < 0.38);
     const isHighSpeedStraight = carProgress > 0.85 || carProgress < 0.15 || (carProgress > 0.50 && carProgress < 0.62);
@@ -174,9 +164,20 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
     let rpm = 11800;
     let latG = 1.2;
     let lonG = 0.8;
+    let shiftState: 'UPSHIFT' | 'DOWNSHIFT' | 'HOLD' | 'NEUTRAL' = 'HOLD';
 
     if (!isRunning) {
-      return { throttle: 0, brake: 0, gear: 1, rpm: 4200, latG: 0, lonG: 0, brakeTemp: 450 };
+      return {
+        throttle: 0,
+        brake: 0,
+        gear: 1,
+        rpm: 4200,
+        latG: 0,
+        lonG: 0,
+        brakeTemp: 450,
+        shiftState: 'NEUTRAL' as const,
+        totalShifts: 0,
+      };
     }
 
     if (isHeavyBrakingZone) {
@@ -186,6 +187,7 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
       rpm = 9600;
       latG = 1.8;
       lonG = -4.4; // heavy deceleration
+      shiftState = 'DOWNSHIFT';
     } else if (isHighSpeedStraight) {
       throttle = isDrsActive ? 100 : 98;
       brake = 0;
@@ -193,19 +195,22 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
       rpm = isDrsActive ? 12850 : 12400;
       latG = 0.4;
       lonG = 1.9; // acceleration
+      shiftState = 'UPSHIFT';
     } else {
       // Cornering
-      throttle = 55;
-      brake = 15;
+      throttle = 58;
+      brake = 12;
       gear = 4;
-      rpm = 10400;
+      rpm = 10500;
       latG = 3.6; // High lateral cornering G
-      lonG = -0.5;
+      lonG = -0.4;
+      shiftState = 'HOLD';
     }
 
     const brakeTemp = isHeavyBrakingZone ? 820 : 640;
+    const totalShifts = Math.min(52, Math.max(6, Math.round(48 * (carProgress || 0.1))));
 
-    return { throttle, brake, gear, rpm, latG, lonG, brakeTemp };
+    return { throttle, brake, gear, rpm, latG, lonG, brakeTemp, shiftState, totalShifts };
   }, [carProgress, isDrsActive, isRunning]);
 
   // Dynamic SVG ViewBox for Camera Follow Mode
@@ -241,15 +246,50 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             <span className="track-sim__hud-val track-sim__hud-sector">{sector}</span>
           </div>
 
+          {/* Throttle & Brake quick gauge */}
+          <div className="track-sim__hud-item">
+            <span className="track-sim__hud-label">INPUTS (THR/BRK)</span>
+            <div className="track-sim__hud-inputs-mini">
+              <div className="track-sim__mini-bar-track">
+                <div className="track-sim__mini-bar-fill track-sim__mini-bar-fill--thr" style={{ height: `${telemetryDynamics.throttle}%` }} />
+              </div>
+              <div className="track-sim__mini-bar-track">
+                <div className="track-sim__mini-bar-fill track-sim__mini-bar-fill--brk" style={{ height: `${telemetryDynamics.brake}%` }} />
+              </div>
+              <span className="track-sim__mini-text mono">
+                T:<strong>{telemetryDynamics.throttle}%</strong> B:<strong>{telemetryDynamics.brake}%</strong>
+              </span>
+            </div>
+          </div>
+
+          {/* Gear and Shift */}
+          <div className="track-sim__hud-item">
+            <span className="track-sim__hud-label">GEAR</span>
+            <span className="track-sim__hud-val track-sim__hud-gear">
+              G{telemetryDynamics.gear}
+              {telemetryDynamics.shiftState === 'UPSHIFT' && <ArrowUp size={11} className="shift-icon shift-icon--up" />}
+              {telemetryDynamics.shiftState === 'DOWNSHIFT' && <ArrowDown size={11} className="shift-icon shift-icon--down" />}
+            </span>
+          </div>
+
           <div className="track-sim__hud-item">
             <span className="track-sim__hud-label">SPEED</span>
             <span className="track-sim__hud-val track-sim__hud-speed">{Math.round(speed)} <small>KM/H</small></span>
           </div>
 
+          {/* DRS Mention in Header */}
           <div className="track-sim__hud-item">
-            <span className="track-sim__hud-label">DRS</span>
+            <span className="track-sim__hud-label">DRS WING</span>
             <span className={`track-sim__hud-val track-sim__drs ${isDrsActive ? 'track-sim__drs--open' : isDrsZone ? 'track-sim__drs--avail' : ''}`}>
-              {isDrsActive ? 'OPEN (+12kph)' : isDrsZone ? 'AVAILABLE' : 'CLOSED'}
+              {isDrsActive ? 'OPEN (+12.8kph)' : isDrsZone ? 'ARMED (<1.0s)' : 'CLOSED'}
+            </span>
+          </div>
+
+          {/* ERS Mention in Header */}
+          <div className="track-sim__hud-item">
+            <span className="track-sim__hud-label">ERS SYSTEM</span>
+            <span className="track-sim__hud-val track-sim__hud-ers mono">
+              {ers.toFixed(1)}% <small>({action === 'OVERTAKE' ? '-120kW' : action === 'RECOVER' ? '+85kW' : '45kW'})</small>
             </span>
           </div>
 
@@ -284,7 +324,7 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             aria-label="Toggle telemetry statistics"
           >
             <Gauge size={12} />
-            <span>STATS</span>
+            <span>TELEMETRY STATS</span>
             {showDetailedStats ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
         </div>
@@ -329,7 +369,7 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             {/* 3D Car Body Gradients */}
             <linearGradient id="saziChassis3D" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="var(--accent)" />
-              <stop offset="35%" stopColor="#ffffff" stopOpacity="0.4" />
+              <stop offset="35%" stopColor="#ffffff" stopOpacity="0.45" />
               <stop offset="65%" stopColor="var(--accent)" />
               <stop offset="100%" stopColor="#042a42" />
             </linearGradient>
@@ -444,7 +484,6 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
           />
 
           {/* ── Solid White Edge Markings (Inner & Outer Track Limits) ─── */}
-          {/* Outer Track Limit White Line */}
           <path
             d={CIRCUIT_PATH}
             fill="none"
@@ -453,7 +492,6 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             strokeDasharray="none"
             opacity="0.25"
           />
-          {/* Crisp Inner & Outer Track Boundary Lines */}
           <path
             d={CIRCUIT_PATH}
             className="track-sim__edge-line"
@@ -470,7 +508,6 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
           {/* Red & White FIA Apex Curbs */}
           {CURBS.map((c, idx) => (
             <g key={idx} transform={`rotate(${c.rot}, ${c.x + c.w / 2}, ${c.y + c.h / 2})`}>
-              {/* Curb Base */}
               <rect
                 x={c.x}
                 y={c.y}
@@ -525,7 +562,7 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
           {/* DRS Detection Point Marker */}
           <g transform="translate(200, 410)">
             <line x1="0" y1="-22" x2="0" y2="22" stroke="var(--accent)" strokeWidth="3" strokeDasharray="3 3" />
-            <text x="-4" y="-26" className="track-sim__drs-marker-text">DRS DETECTION</text>
+            <text x="-4" y="-26" className="track-sim__drs-marker-text">DRS DETECTION POINT (1.0s GAP LIMIT)</text>
           </g>
 
           {/* Sector Splits */}
@@ -546,19 +583,14 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             transform={`translate(${carState.field.x}, ${carState.field.y}) rotate(${carState.field.angle})`}
             filter="url(#f1GroundShadow)"
           >
-            {/* Diffuser & floor shadow */}
             <rect x="-18" y="-7" width="36" height="14" rx="4" fill="#0f172a" />
-            {/* Chassis */}
             <path d="M -18 -6 L 8 -6 L 18 -3 L 23 0 L 18 3 L 8 6 L -18 6 Z" fill="#64748b" />
-            {/* Front & Rear Wing */}
             <rect x="20" y="-9" width="3" height="18" rx="1" fill="#334155" />
             <rect x="-20" y="-9" width="3" height="18" rx="1" fill="#334155" />
-            {/* 3D Tires */}
             <rect x="-16" y="-12" width="9" height="5" rx="1.5" fill="url(#tire3D)" stroke="#94a3b8" strokeWidth="0.5" />
             <rect x="-16" y="7" width="9" height="5" rx="1.5" fill="url(#tire3D)" stroke="#94a3b8" strokeWidth="0.5" />
             <rect x="9" y="-11" width="8" height="4.5" rx="1.5" fill="url(#tire3D)" stroke="#94a3b8" strokeWidth="0.5" />
             <rect x="9" y="6.5" width="8" height="4.5" rx="1.5" fill="url(#tire3D)" stroke="#94a3b8" strokeWidth="0.5" />
-            {/* Halo */}
             <path d="M -2 -4 L 8 0 L -2 4" stroke="#94a3b8" strokeWidth="2" fill="none" />
             <circle cx="2" cy="0" r="2.5" fill="#f8fafc" />
           </g>
@@ -569,15 +601,11 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             className="track-sim__car-rival"
             filter="url(#f1GroundShadow)"
           >
-            {/* Ground effect carbon floor */}
             <path d="M -19 -8 L 10 -8 L 22 -4 L 26 0 L 22 4 L 10 8 L -19 8 Z" fill="#090d16" />
-
-            {/* Rear wing with endplates */}
             <rect x="-22" y="-11" width="4" height="22" rx="1" fill="url(#carbonWing)" />
             <rect x="-22" y="-11" width="5" height="3" fill="#ef4444" />
             <rect x="-22" y="8" width="5" height="3" fill="#ef4444" />
 
-            {/* 3D Curved Body Chassis */}
             <path
               d="M -19 -6.5 L 6 -6.5 L 18 -4 L 24 0 L 18 4 L 6 6.5 L -19 6.5 Z"
               fill="url(#rivalChassis3D)"
@@ -585,26 +613,20 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
               strokeWidth="0.8"
             />
 
-            {/* Sidepod Radiator Air Inlets */}
             <rect x="-3" y="-7.5" width="8" height="2" rx="1" fill="#020617" />
             <rect x="-3" y="5.5" width="8" height="2" rx="1" fill="#020617" />
-
-            {/* Multi-element Front Wing with Vortex Generators */}
             <rect x="22" y="-11" width="3" height="22" rx="1" fill="url(#carbonWing)" />
             <line x1="24" y1="-10" x2="24" y2="10" stroke="#ef4444" strokeWidth="1" />
 
-            {/* 3D Pirelli Tires with Compound Stripe (Red Softs) */}
             <rect x="-16" y="-12.5" width="9" height="5" rx="1.5" fill="url(#tire3D)" stroke="#ef4444" strokeWidth="0.8" />
             <rect x="-16" y="7.5" width="9" height="5" rx="1.5" fill="url(#tire3D)" stroke="#ef4444" strokeWidth="0.8" />
             <rect x="10" y="-11.5" width="8" height="4.5" rx="1.5" fill="url(#tire3D)" stroke="#ef4444" strokeWidth="0.8" />
             <rect x="10" y="7" width="8" height="4.5" rx="1.5" fill="url(#tire3D)" stroke="#ef4444" strokeWidth="0.8" />
 
-            {/* Halo Protection Structure */}
             <path d="M -3 -4.5 L 9 0 L -3 4.5" stroke="#475569" strokeWidth="2.5" fill="none" />
             <circle cx="2" cy="0" r="3" fill="#fbbf24" />
             <path d="M 2 -2 L 5 0 L 2 2" stroke="#0f172a" strokeWidth="1.5" fill="none" />
 
-            {/* Label */}
             <text x="0" y="-16" className="track-sim__car-label track-sim__car-label--rival">
               P{(raceState?.position ?? 2) - 1 > 0 ? (raceState?.position ?? 2) - 1 : 1} RIVAL (+{gapAhead.toFixed(2)}s)
             </text>
@@ -633,7 +655,7 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             {/* Ground-Effect Diffuser & Carbon Underside Floor */}
             <path d="M -20 -8.5 L 11 -8.5 L 23 -4.5 L 27 0 L 23 4.5 L 11 8.5 L -20 8.5 Z" fill="#040914" />
 
-            {/* Multi-element 3D Rear Wing Assembly (DRS Flap Opens in Overtake) */}
+            {/* Rear Wing Assembly (DRS Flap Opens in Overtake) */}
             <rect
               x={isDrsActive ? -25 : -23}
               y="-12"
@@ -645,7 +667,6 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
               stroke="var(--accent)"
               strokeWidth="0.8"
             />
-            {/* Rear Wing Endplates */}
             <rect x="-24" y="-12" width="6" height="3" rx="0.5" fill="var(--accent)" />
             <rect x="-24" y="9" width="6" height="3" rx="0.5" fill="var(--accent)" />
 
@@ -657,50 +678,106 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
               strokeWidth="1"
             />
 
-            {/* Sidepod 3D Sculpting & Radiator Intakes */}
             <path d="M -5 -8 L 5 -8 L 7 -6 L -5 -6 Z" fill="#060e1a" />
             <path d="M -5 6 L 7 6 L 5 8 L -5 8 Z" fill="#060e1a" />
-            {/* Engine Cover Shark Fin */}
             <line x1="-16" y1="0" x2="2" y2="0" stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" />
 
-            {/* 3D Multi-Tier Front Wing with Vortex Flaps */}
             <rect x="23" y="-12" width="3.5" height="24" rx="1.2" fill="url(#carbonWing)" stroke="var(--accent)" strokeWidth="0.6" />
             <line x1="25" y1="-11" x2="25" y2="11" stroke="var(--accent)" strokeWidth="1.2" />
 
-            {/* 3D Pirelli Tires with Medium/Hard Color Stripe */}
             <rect x="-17" y="-13" width="9.5" height="5.5" rx="1.8" fill="url(#tire3D)" stroke="var(--accent)" strokeWidth="1" />
             <rect x="-17" y="7.5" width="9.5" height="5.5" rx="1.8" fill="url(#tire3D)" stroke="var(--accent)" strokeWidth="1" />
             <rect x="11" y="-12" width="8.5" height="5" rx="1.8" fill="url(#tire3D)" stroke="var(--accent)" strokeWidth="1" />
             <rect x="11" y="7" width="8.5" height="5" rx="1.8" fill="url(#tire3D)" stroke="var(--accent)" strokeWidth="1" />
 
-            {/* Halo Titanium Bar System */}
             <path d="M -3 -5 L 10 0 L -3 5" stroke="var(--accent)" strokeWidth="3" fill="none" strokeLinecap="round" />
             <circle cx="3" cy="0" r="3.2" fill="url(#visorGloss)" />
-
-            {/* Overhead T-Camera */}
             <rect x="-6" y="-1" width="3" height="2" rx="0.5" fill="#facc15" />
 
-            {/* Label */}
             <text x="0" y="-17" className="track-sim__car-label track-sim__car-label--sazi">
               P{raceState?.position ?? 1} SAZI AI ({Math.round(speed)} KM/H)
             </text>
           </g>
         </svg>
+
+        {/* ── F1 TV Broadcast Onboard Telemetry Graphic (Floating HUD) ── */}
+        <div className="track-sim__onboard-hud">
+          <div className="track-sim__onboard-header">
+            <span className="track-sim__onboard-title">F1 LIVE TELEMETRY</span>
+            <span className={`track-sim__onboard-status ${isRunning ? 'active' : ''}`}>{isRunning ? 'TRANSMITTING' : 'STANDBY'}</span>
+          </div>
+
+          <div className="track-sim__onboard-main">
+            {/* Speed & Gear Cluster */}
+            <div className="track-sim__onboard-cluster">
+              <div className="track-sim__onboard-speed">
+                <span className="track-sim__onboard-speed-val mono">{Math.round(speed)}</span>
+                <span className="track-sim__onboard-speed-unit">KM/H</span>
+              </div>
+              <div className="track-sim__onboard-gear">
+                <span className="track-sim__onboard-gear-val mono">{telemetryDynamics.gear}</span>
+                <span className="track-sim__onboard-gear-lbl">GEAR</span>
+              </div>
+            </div>
+
+            {/* Vertical Throttle & Brake Bars */}
+            <div className="track-sim__onboard-pedals">
+              <div className="track-sim__pedal-meter">
+                <div className="track-sim__pedal-bar-vert">
+                  <div className="track-sim__pedal-fill-vert track-sim__pedal-fill-vert--thr" style={{ height: `${telemetryDynamics.throttle}%` }} />
+                </div>
+                <span className="track-sim__pedal-text mono">{telemetryDynamics.throttle}%</span>
+                <span className="track-sim__pedal-tag">THR</span>
+              </div>
+
+              <div className="track-sim__pedal-meter">
+                <div className="track-sim__pedal-bar-vert">
+                  <div className="track-sim__pedal-fill-vert track-sim__pedal-fill-vert--brk" style={{ height: `${telemetryDynamics.brake}%` }} />
+                </div>
+                <span className="track-sim__pedal-text mono">{telemetryDynamics.brake}%</span>
+                <span className="track-sim__pedal-tag">BRK</span>
+              </div>
+            </div>
+
+            {/* DRS & ERS Broadcast Indicators */}
+            <div className="track-sim__onboard-systems">
+              <div className={`track-sim__sys-badge ${isDrsActive ? 'track-sim__sys-badge--drs-on' : ''}`}>
+                <span className="sys-name">DRS</span>
+                <span className="sys-state">{isDrsActive ? 'ACTIVE' : isDrsZone ? 'ARMED' : 'CLOSED'}</span>
+              </div>
+
+              <div className={`track-sim__sys-badge track-sim__sys-badge--ers ${action.toLowerCase()}`}>
+                <span className="sys-name">ERS</span>
+                <span className="sys-state">{action === 'OVERTAKE' ? 'BOOST' : action === 'RECOVER' ? 'REGEN' : 'BALANCED'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* LED Rev Lights */}
+          <div className="track-sim__onboard-leds">
+            {Array.from({ length: 15 }).map((_, i) => (
+              <span
+                key={i}
+                className={`track-sim__led ${i < activeLeds ? (i < 5 ? 'track-sim__led--green' : i < 10 ? 'track-sim__led--yellow' : 'track-sim__led--red') : ''}`}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* ── Advanced Detailed Telemetry Statistics Drawer ─────────────── */}
       {showDetailedStats && (
         <div className="track-sim__telemetry-drawer">
-          {/* Column 1: Pedals & G-Force Meter */}
+          {/* Card 1: Throttle Inputs, Brake Inputs & Gear Change */}
           <div className="track-sim__drawer-card">
             <div className="track-sim__drawer-header">
               <Gauge size={13} />
-              <span>PEDALS & G-FORCE</span>
+              <span>THROTTLE, BRAKE & GEAR SHIFTS</span>
             </div>
             <div className="track-sim__drawer-body">
-              {/* Throttle & Brake Pedals */}
+              {/* Throttle Input */}
               <div className="track-sim__pedal-row">
-                <span className="track-sim__pedal-label">THR</span>
+                <span className="track-sim__pedal-label">THROTTLE:</span>
                 <div className="track-sim__pedal-bar">
                   <div
                     className="track-sim__pedal-fill track-sim__pedal-fill--throttle"
@@ -710,8 +787,9 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
                 <span className="track-sim__pedal-val mono">{telemetryDynamics.throttle}%</span>
               </div>
 
+              {/* Brake Input */}
               <div className="track-sim__pedal-row">
-                <span className="track-sim__pedal-label">BRK</span>
+                <span className="track-sim__pedal-label">BRAKE:</span>
                 <div className="track-sim__pedal-bar">
                   <div
                     className="track-sim__pedal-fill track-sim__pedal-fill--brake"
@@ -721,70 +799,121 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
                 <span className="track-sim__pedal-val mono">{telemetryDynamics.brake}%</span>
               </div>
 
-              {/* G-Force Readouts */}
-              <div className="track-sim__g-row">
-                <div className="track-sim__g-box">
-                  <span className="track-sim__g-label">LATERAL G</span>
-                  <span className="track-sim__g-val mono">{telemetryDynamics.latG.toFixed(1)}G</span>
-                </div>
-                <div className="track-sim__g-box">
-                  <span className="track-sim__g-label">LONGITUDINAL G</span>
-                  <span className={`track-sim__g-val mono ${telemetryDynamics.lonG < 0 ? 'track-sim__g-val--neg' : ''}`}>
-                    {telemetryDynamics.lonG > 0 ? `+${telemetryDynamics.lonG.toFixed(1)}` : telemetryDynamics.lonG.toFixed(1)}G
-                  </span>
-                </div>
+              {/* Gear Change Telemetry */}
+              <div className="track-sim__stat-pair">
+                <span>GEAR ENGAGEMENT:</span>
+                <strong className="mono track-sim__gear-callout">
+                  GEAR {telemetryDynamics.gear} &nbsp;
+                  {telemetryDynamics.shiftState === 'UPSHIFT' && <span className="shift-pill shift-pill--up">▲ UPSHIFT</span>}
+                  {telemetryDynamics.shiftState === 'DOWNSHIFT' && <span className="shift-pill shift-pill--down">▼ DOWNSHIFT</span>}
+                  {telemetryDynamics.shiftState === 'HOLD' && <span className="shift-pill">OPTIMAL GEAR</span>}
+                </strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>GEAR SHIFTS THIS LAP:</span>
+                <strong className="mono">{telemetryDynamics.totalShifts} SHIFTS COMPLETED (SEAMLESS SHIFT)</strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>FULL THROTTLE DUTY:</span>
+                <strong className="mono">71.4% LAP INJECTION (WOT)</strong>
               </div>
             </div>
           </div>
 
-          {/* Column 2: Powertrain, Gear & RPM rev lights */}
+          {/* Card 2: DRS (Drag Reduction System) Mentions & Aerodynamics */}
+          <div className="track-sim__drawer-card">
+            <div className="track-sim__drawer-header">
+              <Wind size={13} />
+              <span>DRS (DRAG REDUCTION SYSTEM)</span>
+            </div>
+            <div className="track-sim__drawer-body">
+              <div className="track-sim__stat-pair">
+                <span>REAR WING STATUS:</span>
+                <strong className="mono" style={{ color: isDrsActive ? 'var(--success)' : 'var(--text-primary)' }}>
+                  {isDrsActive ? 'OPEN (HYDRAULIC FLAP DEPLOYED)' : isDrsZone ? 'ARMED (< 1.00s DETECTION)' : 'CLOSED (HIGH DOWNFORCE)'}
+                </strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>DRS SPEED ADVANTAGE:</span>
+                <strong className="mono" style={{ color: 'var(--accent)' }}>
+                  +12.8 KM/H TOP SPEED DELTA (320 KM/H SPEED TRAP)
+                </strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>DRAG REDUCTION RATIO:</span>
+                <strong className="mono">-30.5% AERODYNAMIC RESISTANCE</strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>DETECTION POINT GAP:</span>
+                <strong className="mono">
+                  {gapAhead <= 1.0 ? `+${gapAhead.toFixed(2)}s (DRS PERMITTED)` : `+${gapAhead.toFixed(2)}s (> 1.0s LIMIT)`}
+                </strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>DRS ACTIVATION ZONE:</span>
+                <strong className="mono">MAIN STRAIGHT • 680 METERS</strong>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: ERS (Energy Recovery System) Hybrid Powertrain */}
           <div className="track-sim__drawer-card">
             <div className="track-sim__drawer-header">
               <Zap size={13} />
-              <span>GEARBOX & POWER UNIT</span>
+              <span>ERS (HYBRID ENERGY RECOVERY SYSTEM)</span>
             </div>
             <div className="track-sim__drawer-body">
-              {/* Gear and RPM */}
-              <div className="track-sim__gear-row">
-                <div className="track-sim__gear-badge">
-                  <span className="track-sim__gear-title">GEAR</span>
-                  <span className="track-sim__gear-num mono">{telemetryDynamics.gear}</span>
-                </div>
-                <div className="track-sim__rpm-box">
-                  <span className="track-sim__rpm-val mono">{telemetryDynamics.rpm.toLocaleString()} <small>RPM</small></span>
-                  {/* F1 Rev Limiter LEDs */}
-                  <div className="track-sim__led-bar">
-                    {Array.from({ length: 15 }).map((_, i) => (
-                      <span
-                        key={i}
-                        className={`track-sim__led ${i < activeLeds ? (i < 5 ? 'track-sim__led--green' : i < 10 ? 'track-sim__led--yellow' : 'track-sim__led--red') : ''}`}
-                      />
-                    ))}
-                  </div>
-                </div>
+              <div className="track-sim__stat-pair">
+                <span>BATTERY STATE OF CHARGE:</span>
+                <strong className="mono">{ers.toFixed(1)}% (2.62 MJ / 4.00 MJ CAPACITY)</strong>
               </div>
 
-              {/* Energy Deployed & Budget */}
               <div className="track-sim__stat-pair">
-                <span>ENERGY USED / LAP:</span>
-                <strong className="mono">{(raceState?.energy_deployed_mj ?? 1.85).toFixed(2)} / {(raceState?.deployment_budget_mj ?? 4.0).toFixed(1)} MJ</strong>
-              </div>
-              <div className="track-sim__stat-pair">
-                <span>MGU-K DEPLOYMENT:</span>
+                <span>MGU-K DEPLOYMENT FLOW:</span>
                 <strong className="mono" style={{ color: action === 'OVERTAKE' ? 'var(--overtake)' : action === 'RECOVER' ? 'var(--recover)' : 'var(--accent)' }}>
-                  {action === 'OVERTAKE' ? '120 kW (MAX ATTACK)' : action === 'RECOVER' ? '+85 kW (HARVESTING)' : '45 kW (CRUISE)'}
+                  {action === 'OVERTAKE'
+                    ? '-120 kW (160 BHP) FULL ATTACK BOOST'
+                    : action === 'RECOVER'
+                    ? '+85 kW KINETIC HARVESTING UNDER BRAKING'
+                    : '45 kW STRATEGIC CRUISE DEPLOYMENT'}
+                </strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>ENERGY USED THIS LAP:</span>
+                <strong className="mono">
+                  {(raceState?.energy_deployed_mj ?? 1.85).toFixed(2)} MJ / {(raceState?.deployment_budget_mj ?? 4.0).toFixed(1)} MJ (FIA ALLOWANCE)
+                </strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>MGU-H TURBO RECOVERY:</span>
+                <strong className="mono">+35 kW CONTINUOUS HEAT HARVESTING</strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>FIA RULE COMPLIANCE:</span>
+                <strong className="mono" style={{ color: 'var(--success)' }}>
+                  ARTICLE 5.2.2 ENERGY REGULATION PASS
                 </strong>
               </div>
             </div>
           </div>
 
-          {/* Column 3: 4-Corner Tire Pressures & Temps */}
+          {/* Card 4: Tires, G-Force & Thermal Telemetry */}
           <div className="track-sim__drawer-card">
             <div className="track-sim__drawer-header">
               <Thermometer size={13} />
-              <span>TIRE & BRAKE TELEMETRY</span>
+              <span>TIRES, G-FORCE & THERMALS</span>
             </div>
             <div className="track-sim__drawer-body">
+              {/* 4 Corner Tires */}
               <div className="track-sim__tires-grid">
                 <div className="track-sim__tire-cell">
                   <span className="track-sim__tire-pos">FL</span>
@@ -809,36 +938,20 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
               </div>
 
               <div className="track-sim__stat-pair">
-                <span>CARBON DISC TEMP:</span>
-                <strong className="mono" style={{ color: telemetryDynamics.brakeTemp > 800 ? '#ef4444' : '#f59e0b' }}>
-                  {telemetryDynamics.brakeTemp}°C
-                </strong>
+                <span>LATERAL CORNERING G:</span>
+                <strong className="mono">{telemetryDynamics.latG.toFixed(1)} G (APEX LOAD)</strong>
               </div>
-            </div>
-          </div>
 
-          {/* Column 4: Lap Times, Splits & Track Environment */}
-          <div className="track-sim__drawer-card">
-            <div className="track-sim__drawer-header">
-              <Wind size={13} />
-              <span>TIMING & ENVIRONMENT</span>
-            </div>
-            <div className="track-sim__drawer-body">
               <div className="track-sim__stat-pair">
-                <span>EST. LAP TIME:</span>
-                <strong className="mono">1:18.420</strong>
+                <span>LONGITUDINAL G:</span>
+                <strong className="mono">{telemetryDynamics.lonG > 0 ? `+${telemetryDynamics.lonG.toFixed(1)}` : telemetryDynamics.lonG.toFixed(1)} G</strong>
               </div>
+
               <div className="track-sim__stat-pair">
-                <span>DELTA TO BEST:</span>
-                <strong className="mono" style={{ color: 'var(--success)' }}>-0.342s (PURPLE)</strong>
-              </div>
-              <div className="track-sim__stat-pair">
-                <span>TRACK STATUS:</span>
-                <strong className="track-sim__flag-green"><Radio size={10} /> GREEN FLAG</strong>
-              </div>
-              <div className="track-sim__stat-pair">
-                <span>TRACK / AIR TEMP:</span>
-                <strong className="mono">38.5°C / 27.0°C DRY</strong>
+                <span>CARBON BRAKE DISCS:</span>
+                <strong className="mono" style={{ color: telemetryDynamics.brakeTemp > 800 ? '#ef4444' : '#f59e0b' }}>
+                  {telemetryDynamics.brakeTemp}°C (PEAK HEAVY BRAKING)
+                </strong>
               </div>
             </div>
           </div>
@@ -858,7 +971,7 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
           </div>
           <div className="track-sim__legend-item">
             <span className="track-sim__legend-dot track-sim__legend-dot--drs" />
-            <span>DRS DETECTION & ACTIVATION STRAIGHT</span>
+            <span>DRS DETECTION & ACTIVATION ZONE</span>
           </div>
           <div className="track-sim__legend-item">
             <span className="track-sim__legend-dot track-sim__legend-dot--curb" />
@@ -867,7 +980,7 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
         </div>
 
         <div className="track-sim__live-ers">
-          <span className="track-sim__ers-label">ERS BATTERY:</span>
+          <span className="track-sim__ers-label">ERS BATTERY RESERVE:</span>
           <div className="track-sim__ers-bar">
             <div
               className={`track-sim__ers-fill track-sim__ers-fill--${action.toLowerCase()}`}
