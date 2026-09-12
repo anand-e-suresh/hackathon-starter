@@ -6,7 +6,7 @@
  * While backend is not connected, mock data is used (clearly labeled).
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Activity, Cpu, GitCompare, AlertCircle, Info, Sun, Moon } from 'lucide-react';
+import { Activity, Cpu, GitCompare, AlertCircle, Info, Sun, Moon, Tv } from 'lucide-react';
 
 import { useBackendStatus } from './hooks/useBackendStatus';
 import { useTheme } from './hooks/useTheme';
@@ -14,6 +14,7 @@ import RaceStateBar from './components/RaceStateBar';
 import DecisionCard from './components/DecisionCard';
 import RuleComplianceBadge from './components/RuleComplianceBadge';
 import ComparisonView from './components/ComparisonView';
+import TrackSimulation from './components/TrackSimulation';
 import EnergyOverTimeChart from './components/charts/EnergyOverTimeChart';
 import PositionOverTimeChart from './components/charts/PositionOverTimeChart';
 import GapChart from './components/charts/GapChart';
@@ -39,6 +40,9 @@ export default function App() {
 
   // Backend health
   const backendStatus = useBackendStatus();
+
+  // Track simulation visibility
+  const [showTrack, setShowTrack] = useState(true);
 
   // Simulation state
   const [simStatus, setSimStatus] = useState<SimStatus>('idle');
@@ -266,6 +270,17 @@ export default function App() {
         </button>
 
         <button
+          id="btn-track-toggle"
+          className={`ctrl-btn ctrl-btn--track ${showTrack ? 'ctrl-btn--track-active' : ''}`}
+          onClick={() => setShowTrack(!showTrack)}
+          aria-label="Toggle 2D live circuit simulation"
+          title="Toggle 2D live track view with animated F1 cars"
+        >
+          <Tv size={14} />
+          {showTrack ? 'HIDE 2D TRACK' : '2D LIVE TRACK'}
+        </button>
+
+        <button
           id="btn-compare"
           className="ctrl-btn ctrl-btn--compare"
           onClick={handleRunComparison}
@@ -285,6 +300,17 @@ export default function App() {
 
       {/* ── Main content grid ──────────────────────────────────────── */}
       <main className="app__main" role="main">
+
+        {/* 2D Live Track Simulation */}
+        {showTrack && (
+          <section className="app__row app__row--track" aria-label="2D Live Circuit Simulation">
+            <TrackSimulation
+              raceState={raceState}
+              prediction={prediction}
+              isRunning={simStatus === 'running'}
+            />
+          </section>
+        )}
 
         {/* Row 1: Decision + Compliance */}
         <section className="app__row app__row--top" aria-label="AI decision and compliance">

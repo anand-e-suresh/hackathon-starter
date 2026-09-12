@@ -219,6 +219,29 @@
   color: var(--text-primary);
 }
 
+.ctrl-btn--track {
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+.ctrl-btn--track:hover:not(:disabled) {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+  border-color: var(--border-bright);
+}
+.ctrl-btn--track-active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent-glow);
+}
+.ctrl-btn--track-active:hover:not(:disabled) {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+.ctrl-btn--track svg {
+  color: var(--accent);
+}
+
 .ctrl-btn--compare {
   background: var(--bg-card);
   color: var(--text-secondary);

@@ -1,0 +1,485 @@
+/* TrackSimulation.css — 2D Live Circuit Simulation Styling */
+
+.track-sim {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-md);
+  transition: border-color var(--transition), box-shadow var(--transition);
+  position: relative;
+  animation: fade-in 0.3s ease;
+}
+
+.track-sim--overtake {
+  border-color: rgba(220, 38, 38, 0.4);
+  box-shadow: 0 0 20px var(--overtake-dim);
+}
+
+.track-sim--hold {
+  border-color: rgba(249, 115, 22, 0.4);
+  box-shadow: 0 0 20px var(--hold-dim);
+}
+
+.track-sim--recover {
+  border-color: rgba(16, 231, 130, 0.4);
+  box-shadow: 0 0 20px var(--recover-dim);
+}
+
+/* ── Top Header / HUD ────────────────────────────────────────── */
+.track-sim__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.track-sim__title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.track-sim__live-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-glow);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.track-sim__pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.track-sim__pulse-dot--active {
+  animation: pulse-dot 1s ease-in-out infinite;
+}
+
+.track-sim__circuit-name {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+/* HUD Metrics */
+.track-sim__hud-metrics {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.track-sim__hud-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.track-sim__hud-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.track-sim__hud-val {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.track-sim__hud-speed small {
+  font-size: 9px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.track-sim__drs {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.track-sim__drs--avail { color: var(--hold); }
+.track-sim__drs--open  { color: var(--success); font-weight: 800; animation: pulse-dot 1.2s infinite; }
+
+.track-sim__hud-gap {
+  color: var(--danger);
+}
+
+.track-sim__mode-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+}
+
+.track-sim__mode-chip--overtake {
+  color: var(--overtake-text);
+  background: var(--overtake-dim);
+  border-color: rgba(255, 77, 77, 0.3);
+}
+
+.track-sim__mode-chip--hold {
+  color: var(--hold-text);
+  background: var(--hold-dim);
+  border-color: rgba(245, 200, 66, 0.3);
+}
+
+.track-sim__mode-chip--recover {
+  color: var(--recover-text);
+  background: var(--recover-dim);
+  border-color: rgba(16, 231, 130, 0.3);
+}
+
+/* Camera button */
+.track-sim__cam-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.track-sim__cam-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-bright);
+  color: var(--text-primary);
+}
+
+.track-sim__cam-btn--active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── SVG Canvas Area ─────────────────────────────────────────── */
+.track-sim__canvas-wrapper {
+  position: relative;
+  width: 100%;
+  height: 380px;
+  background: var(--bg-base);
+  overflow: hidden;
+}
+
+.track-sim__svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  transition: viewBox 0.4s ease;
+}
+
+/* Track elements */
+.track-sim__bg-infield {
+  fill: var(--bg-base);
+  transition: fill var(--transition);
+}
+
+.track-sim__grandstand {
+  fill: var(--bg-card);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.track-sim__grandstand-label {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  fill: var(--text-muted);
+}
+
+.track-sim__runoff {
+  fill: none;
+  stroke: var(--border-subtle);
+  stroke-width: 44;
+  opacity: 0.4;
+}
+
+.track-sim__asphalt-outer {
+  fill: none;
+  stroke: var(--border);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke var(--transition);
+}
+
+.track-sim__asphalt {
+  fill: none;
+  stroke: var(--bg-surface);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke var(--transition);
+}
+
+.track-sim__racing-line {
+  fill: none;
+  stroke: var(--border-subtle);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.5;
+}
+
+.track-sim__drs-zone {
+  fill: none;
+  stroke: var(--accent-dim);
+  stroke-linecap: butt;
+  stroke-dasharray: 6 3;
+  opacity: 0.6;
+}
+
+.track-sim__drs-zone--active {
+  stroke: var(--success);
+  opacity: 0.8;
+  animation: pulse-dot 1.5s infinite ease-in-out;
+}
+
+.track-sim__curb {
+  fill: #dc2626;
+  stroke: #ffffff;
+  stroke-width: 1.5;
+  stroke-dasharray: 6 6;
+}
+
+.track-sim__sf-line {
+  stroke: #ffffff;
+}
+
+.track-sim__sf-checkers {
+  stroke: #000000;
+}
+
+.track-sim__sf-text {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  fill: var(--text-muted);
+}
+
+.track-sim__split-line {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 4 2;
+}
+
+.track-sim__split-text {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  fill: var(--accent);
+  text-anchor: middle;
+}
+
+/* ── Animated Cars ───────────────────────────────────────────── */
+.track-sim__car-group {
+  cursor: pointer;
+  transition: filter var(--transition);
+}
+
+.track-sim__car-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-anchor: middle;
+  pointer-events: none;
+  paint-order: stroke fill;
+  stroke-width: 2px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.track-sim__car-label--sazi {
+  fill: var(--accent);
+  stroke: var(--bg-card);
+}
+
+.track-sim__car-label--rival {
+  fill: #f87171;
+  stroke: var(--bg-card);
+}
+
+/* SAZI Car Elements */
+.track-sim__f1-chassis {
+  fill: var(--accent);
+  stroke: var(--bg-card);
+  stroke-width: 0.8;
+}
+
+.track-sim__f1-livery {
+  fill: var(--accent-text);
+  opacity: 0.9;
+}
+
+.track-sim__f1-front-wing {
+  fill: var(--accent-text);
+}
+
+.track-sim__f1-rear-wing {
+  fill: var(--accent);
+  transition: transform 0.2s ease;
+}
+
+.track-sim__f1-rear-wing--open {
+  fill: var(--success);
+  transform: scaleX(0.7);
+}
+
+.track-sim__f1-tire {
+  fill: #0f172a;
+  stroke: var(--accent);
+  stroke-width: 0.8;
+}
+
+.track-sim__f1-helmet {
+  fill: #fbbf24;
+}
+
+/* Mode-specific Car Accents */
+.track-sim__car-sazi--overtake .track-sim__f1-chassis {
+  fill: var(--overtake);
+}
+
+.track-sim__car-sazi--overtake .track-sim__f1-tire {
+  stroke: var(--overtake);
+}
+
+.track-sim__car-sazi--recover .track-sim__f1-chassis {
+  fill: var(--recover);
+}
+
+.track-sim__car-sazi--recover .track-sim__f1-tire {
+  stroke: var(--recover);
+}
+
+.track-sim__aero-trail {
+  animation: fade-in 0.2s ease;
+}
+
+.track-sim__ers-pulse {
+  animation: pulse-dot 1s ease-in-out infinite;
+}
+
+/* ── Bottom Footer / Telemetry Bar ───────────────────────────── */
+.track-sim__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 18px;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.track-sim__legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.track-sim__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.track-sim__legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.track-sim__legend-dot--sazi  { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+.track-sim__legend-dot--rival { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+.track-sim__legend-dot--drs   { background: var(--success); border-radius: 2px; }
+
+.track-sim__live-ers {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.track-sim__ers-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.track-sim__ers-bar {
+  width: 90px;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.track-sim__ers-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.track-sim__ers-fill--overtake { background: var(--overtake); }
+.track-sim__ers-fill--hold     { background: var(--hold); }
+.track-sim__ers-fill--recover  { background: var(--recover); }
+
+.track-sim__ers-val {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+/* ── Responsive adjustments ─────────────────────────────────── */
+@media (max-width: 800px) {
+  .track-sim__canvas-wrapper {
+    height: 280px;
+  }
+  .track-sim__hud-metrics {
+    gap: 8px;
+  }
+}
