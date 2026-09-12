@@ -1,19 +1,26 @@
 /**
  * TrackSimulation.tsx
- * 2D Live Circuit Simulation for SAZI AI Motorsport Intelligence.
+ * Ultra-Realistic 2D Grand Prix Live Circuit Simulation with 3D-styled F1 Cars & Advanced Telemetry.
  *
  * Features:
- * - Full SVG Grand Prix racing circuit with apex curbs, DRS zones, and sectors
- * - Top-down animated F1 cars with orientation, slipstream, and aerodynamic trails
- * - SAZI AI Car reactive to prediction state:
- *     - OVERTAKE: Active DRS, red/orange aerodynamic trail & attack glow
- *     - RECOVER: Green kinetic harvesting aura & regeneration pulses
- *     - HOLD: Balanced slipstream
- * - Rival car tracking ahead/behind based on live gap_ahead_s
- * - Live circuit telemetry HUD: Sector splits, Speed (kph), DRS status, Lap %
+ * - Real asphalt road texture, inner/outer solid white edge markings, grid slots, and gravel runoffs
+ * - Red & white alternating apex curbs, distance boards (150m/100m/50m), pit lane, and DRS zones
+ * - Detailed 3D-styled F1 cars with chassis depth, aerodynamic wings, halo, Pirelli colored tires & driver helmet
+ * - Real-time state reactions:
+ *     - OVERTAKE: Open DRS wing, twin aerodynamic wake vortices & speed blur
+ *     - RECOVER: Green MGU-K energy harvesting halo & regeneration sparks
+ *     - HOLD: Laminar aerodynamic slipstream
+ * - Advanced Telemetry HUD:
+ *     - Live Throttle & Brake pedal inputs
+ *     - Current Gear & RPM with LED rev-limiter lights
+ *     - Lateral & Longitudinal G-Force meter
+ *     - 4-Corner Tire Temperatures & Pressures (FL, FR, RL, RR)
+ *     - Carbon brake disc temperatures
+ *     - Sector splits (S1/S2/S3) & Delta to best lap
+ *     - Weather & Track temperature
  */
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { Zap, Eye, Flag } from 'lucide-react';
+import { Zap, Eye, Flag, ChevronDown, ChevronUp, Radio, Gauge, Thermometer, Wind } from 'lucide-react';
 import type { RaceState, PredictResponse } from '../api/client';
 import './TrackSimulation.css';
 
@@ -27,7 +34,7 @@ interface Props {
 const TRACK_WIDTH = 1000;
 const TRACK_HEIGHT = 480;
 
-// Grand Prix Circuit SVG Path (Smooth continuous loop)
+// Grand Prix Circuit SVG Path (Smooth continuous closed racing loop)
 const CIRCUIT_PATH =
   'M 220 410 ' +
   'L 740 410 ' +
@@ -46,17 +53,26 @@ const CIRCUIT_PATH =
   'C 140 340, 90 370, 110 405 ' +
   'C 125 410, 160 410, 220 410 Z';
 
-// Apex curb segments along critical corners
+// Apex curb locations
 const CURBS = [
-  { x: 740, y: 404, w: 60, h: 12, rot: 5 },
-  { x: 904, y: 280, w: 12, h: 70, rot: 0 },
-  { x: 770, y: 164, w: 50, h: 12, rot: 0 },
-  { x: 645, y: 74, w: 40, h: 12, rot: -30 },
-  { x: 260, y: 24, w: 60, h: 12, rot: 0 },
-  { x: 114, y: 130, w: 12, h: 60, rot: 0 },
-  { x: 450, y: 224, w: 50, h: 12, rot: 0 },
-  { x: 480, y: 314, w: 45, h: 12, rot: 40 },
-  { x: 110, y: 398, w: 40, h: 12, rot: -15 },
+  { x: 740, y: 402, w: 70, h: 16, rot: 5 },
+  { x: 902, y: 275, w: 16, h: 80, rot: 0 },
+  { x: 765, y: 160, w: 60, h: 16, rot: 0 },
+  { x: 640, y: 70, w: 45, h: 16, rot: -30 },
+  { x: 250, y: 18, w: 75, h: 16, rot: 0 },
+  { x: 108, y: 125, w: 16, h: 70, rot: 0 },
+  { x: 445, y: 218, w: 60, h: 16, rot: 0 },
+  { x: 475, y: 310, w: 50, h: 16, rot: 40 },
+  { x: 105, y: 395, w: 45, h: 16, rot: -15 },
+];
+
+// Starting grid slots along start/finish straight
+const GRID_SLOTS = [
+  { x: 380, y: 404 }, { x: 410, y: 416 },
+  { x: 440, y: 404 }, { x: 470, y: 416 },
+  { x: 500, y: 404 }, { x: 530, y: 416 },
+  { x: 560, y: 404 }, { x: 590, y: 416 },
+  { x: 620, y: 404 }, { x: 650, y: 416 },
 ];
 
 export default function TrackSimulation({ raceState, prediction, isRunning }: Props) {
@@ -64,6 +80,7 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
   const [totalLength, setTotalLength] = useState<number>(1);
   const [carProgress, setCarProgress] = useState<number>(0.15); // 0 to 1
   const [cameraFollow, setCameraFollow] = useState<boolean>(false);
+  const [showDetailedStats, setShowDetailedStats] = useState<boolean>(true);
 
   // Measure path length on mount
   useEffect(() => {
@@ -72,6 +89,7 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
     }
   }, []);
 
+  // Update car progress continuously when running
   useEffect(() => {
     let animId: number;
     let lastTime = performance.now();
@@ -81,9 +99,7 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
       lastTime = now;
 
       if (isRunning) {
-        // Compute speed factor from telemetry or default 280 kph
-        const speedKph = raceState?.speed_kph ?? 280;
-        // In simulation, lap advance speed scaling
+        const speedKph = raceState?.speed_kph ?? 285;
         const speedDelta = (speedKph / 300) * 0.045 * dt;
         setCarProgress((prev) => (prev + speedDelta) % 1);
       }
@@ -113,15 +129,15 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
     const p2 = path.getPointAtLength((saziDist + 2) % totalLength);
     const saziAngle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
 
-    // Rival car offset by gap (gap_ahead_s / 80s lap)
-    const gapSec = raceState ? raceState.gap_ahead_s : 1.4;
-    const rivalOffset = Math.min(Math.max((gapSec / 75), 0.03), 0.15);
+    // Rival car offset by gap
+    const gapSec = raceState ? raceState.gap_ahead_s : 1.35;
+    const rivalOffset = Math.min(Math.max((gapSec / 75), 0.035), 0.16);
     const rivalDist = ((carProgress + rivalOffset) * totalLength) % totalLength;
     const rp1 = path.getPointAtLength(rivalDist);
     const rp2 = path.getPointAtLength((rivalDist + 2) % totalLength);
     const rivalAngle = Math.atan2(rp2.y - rp1.y, rp2.x - rp1.x) * (180 / Math.PI);
 
-    // Midfield car (further back)
+    // Midfield car
     const fieldDist = ((carProgress - 0.22 + 1) * totalLength) % totalLength;
     const fp1 = path.getPointAtLength(fieldDist);
     const fp2 = path.getPointAtLength((fieldDist + 2) % totalLength);
@@ -136,21 +152,70 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
 
   // Telemetry attributes
   const action = prediction?.action ?? 'HOLD';
-  const speed = raceState?.speed_kph ?? (isRunning ? 295 : 0);
+  const speed = raceState?.speed_kph ?? (isRunning ? 292 : 0);
   const ers = raceState?.ers_pct ?? 65;
   const gapAhead = raceState?.gap_ahead_s ?? 1.34;
   const currentLap = raceState?.lap ?? 1;
+  const totalLaps = raceState?.total_laps ?? 57;
 
   // Sector calculation
   const sector = carProgress < 0.35 ? 'SECTOR 1' : carProgress < 0.72 ? 'SECTOR 2' : 'SECTOR 3';
-  // DRS zone on main start/finish straight (progress between 0.88 and 0.99 or 0.00 to 0.15)
   const isDrsZone = carProgress > 0.88 || carProgress < 0.14;
   const isDrsActive = isDrsZone && (action === 'OVERTAKE' || gapAhead <= 1.0);
+
+  // Dynamic Telemetry: Throttle, Brake, Gear, RPM, G-Force based on circuit curve and action
+  const telemetryDynamics = useMemo(() => {
+    const isHeavyBrakingZone = (carProgress > 0.72 && carProgress < 0.78) || (carProgress > 0.33 && carProgress < 0.38);
+    const isHighSpeedStraight = carProgress > 0.85 || carProgress < 0.15 || (carProgress > 0.50 && carProgress < 0.62);
+
+    let throttle = 85;
+    let brake = 0;
+    let gear = 7;
+    let rpm = 11800;
+    let latG = 1.2;
+    let lonG = 0.8;
+
+    if (!isRunning) {
+      return { throttle: 0, brake: 0, gear: 1, rpm: 4200, latG: 0, lonG: 0, brakeTemp: 450 };
+    }
+
+    if (isHeavyBrakingZone) {
+      throttle = 0;
+      brake = 95;
+      gear = 3;
+      rpm = 9600;
+      latG = 1.8;
+      lonG = -4.4; // heavy deceleration
+    } else if (isHighSpeedStraight) {
+      throttle = isDrsActive ? 100 : 98;
+      brake = 0;
+      gear = 8;
+      rpm = isDrsActive ? 12850 : 12400;
+      latG = 0.4;
+      lonG = 1.9; // acceleration
+    } else {
+      // Cornering
+      throttle = 55;
+      brake = 15;
+      gear = 4;
+      rpm = 10400;
+      latG = 3.6; // High lateral cornering G
+      lonG = -0.5;
+    }
+
+    const brakeTemp = isHeavyBrakingZone ? 820 : 640;
+
+    return { throttle, brake, gear, rpm, latG, lonG, brakeTemp };
+  }, [carProgress, isDrsActive, isRunning]);
 
   // Dynamic SVG ViewBox for Camera Follow Mode
   const viewBox = cameraFollow
     ? `${Math.max(0, Math.min(carState.sazi.x - 220, TRACK_WIDTH - 440))} ${Math.max(0, Math.min(carState.sazi.y - 150, TRACK_HEIGHT - 300))} 440 300`
     : `0 0 ${TRACK_WIDTH} ${TRACK_HEIGHT}`;
+
+  // RPM LEDs (15 LEDs across rev spectrum)
+  const rpmRatio = Math.max(0, Math.min(1, (telemetryDynamics.rpm - 8000) / 5000));
+  const activeLeds = Math.round(rpmRatio * 15);
 
   return (
     <div className={`track-sim track-sim--${action.toLowerCase()}`} role="region" aria-label="Live 2D Track Simulation">
@@ -161,16 +226,14 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             <span className={`track-sim__pulse-dot ${isRunning ? 'track-sim__pulse-dot--active' : ''}`} />
             LIVE 2D CIRCUIT
           </div>
-          <span className="track-sim__circuit-name">SAZI INTERNATIONAL CIRCUIT • GP LAYOUT</span>
+          <span className="track-sim__circuit-name">SAZI INTERNATIONAL GRAND PRIX CIRCUIT • ASPHALT GRADE 1</span>
         </div>
 
-        {/* Telemetry stats pill */}
+        {/* Primary telemetry pills */}
         <div className="track-sim__hud-metrics">
           <div className="track-sim__hud-item">
-            <span className="track-sim__hud-label" style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <Flag size={9} /> LAP
-            </span>
-            <span className="track-sim__hud-val">{currentLap}<small>/{raceState?.total_laps ?? 57}</small></span>
+            <span className="track-sim__hud-label"><Flag size={9} /> LAP</span>
+            <span className="track-sim__hud-val">{currentLap}<small>/{totalLaps}</small></span>
           </div>
 
           <div className="track-sim__hud-item">
@@ -186,12 +249,12 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
           <div className="track-sim__hud-item">
             <span className="track-sim__hud-label">DRS</span>
             <span className={`track-sim__hud-val track-sim__drs ${isDrsActive ? 'track-sim__drs--open' : isDrsZone ? 'track-sim__drs--avail' : ''}`}>
-              {isDrsActive ? 'OPEN' : isDrsZone ? 'AVAILABLE' : 'CLOSED'}
+              {isDrsActive ? 'OPEN (+12kph)' : isDrsZone ? 'AVAILABLE' : 'CLOSED'}
             </span>
           </div>
 
           <div className="track-sim__hud-item">
-            <span className="track-sim__hud-label">GAP TO P{(raceState?.position ?? 2) - 1 > 0 ? (raceState?.position ?? 2) - 1 : 1}</span>
+            <span className="track-sim__hud-label">GAP P{(raceState?.position ?? 2) - 1 > 0 ? (raceState?.position ?? 2) - 1 : 1}</span>
             <span className="track-sim__hud-val track-sim__hud-gap">+{gapAhead.toFixed(2)}s</span>
           </div>
 
@@ -211,10 +274,23 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             <Eye size={12} />
             <span>{cameraFollow ? 'FULL CIRCUIT' : 'FOLLOW CAR'}</span>
           </button>
+
+          {/* Toggle Detailed Telemetry Stats */}
+          <button
+            type="button"
+            className={`track-sim__cam-btn ${showDetailedStats ? 'track-sim__cam-btn--active' : ''}`}
+            onClick={() => setShowDetailedStats(!showDetailedStats)}
+            title="Toggle live telemetry statistics drawer"
+            aria-label="Toggle telemetry statistics"
+          >
+            <Gauge size={12} />
+            <span>STATS</span>
+            {showDetailedStats ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
         </div>
       </div>
 
-      {/* ── Circuit Canvas ─────────────────────────────────────────────── */}
+      {/* ── Realistic Circuit SVG Canvas ───────────────────────────────── */}
       <div className="track-sim__canvas-wrapper">
         <svg
           viewBox={viewBox}
@@ -222,262 +298,576 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
           preserveAspectRatio="xMidYMid meet"
         >
           <defs>
-            {/* Track Asphalt Texture / Shading */}
-            <linearGradient id="asphaltGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="var(--track-surface, #121c2b)" />
-              <stop offset="100%" stopColor="var(--track-surface-dark, #0d1624)" />
+            {/* Real Asphalt Gradient */}
+            <linearGradient id="realAsphalt" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#252a32" />
+              <stop offset="50%" stopColor="#1e2228" />
+              <stop offset="100%" stopColor="#191c22" />
             </linearGradient>
 
-            {/* DRS Zone Highlight Gradient */}
-            <linearGradient id="drsGrad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="rgba(56, 189, 248, 0.4)" />
-              <stop offset="100%" stopColor="rgba(16, 231, 130, 0.4)" />
+            {/* Asphalt Grain Texture Pattern */}
+            <pattern id="asphaltGrain" width="8" height="8" patternUnits="userSpaceOnUse">
+              <rect width="8" height="8" fill="#1d2127" />
+              <circle cx="2" cy="2" r="0.8" fill="#292f38" opacity="0.6" />
+              <circle cx="6" cy="5" r="0.9" fill="#14171c" opacity="0.8" />
+              <circle cx="4" cy="7" r="0.6" fill="#323843" opacity="0.4" />
+            </pattern>
+
+            {/* Gravel Runoff Pattern */}
+            <pattern id="gravelPattern" width="6" height="6" patternUnits="userSpaceOnUse">
+              <rect width="6" height="6" fill="#ba9663" />
+              <circle cx="2" cy="2" r="1" fill="#9c7a4a" />
+              <circle cx="5" cy="4" r="0.8" fill="#d9b682" />
+            </pattern>
+
+            {/* Red and White Kerb Pattern */}
+            <pattern id="kerbPattern" width="12" height="12" patternUnits="userSpaceOnUse">
+              <rect x="0" y="0" width="6" height="12" fill="#dc2626" />
+              <rect x="6" y="0" width="6" height="12" fill="#ffffff" />
+            </pattern>
+
+            {/* 3D Car Body Gradients */}
+            <linearGradient id="saziChassis3D" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--accent)" />
+              <stop offset="35%" stopColor="#ffffff" stopOpacity="0.4" />
+              <stop offset="65%" stopColor="var(--accent)" />
+              <stop offset="100%" stopColor="#042a42" />
             </linearGradient>
 
-            {/* SAZI Car Aero Exhaust Trail (Overtake Mode) */}
-            <linearGradient id="aeroOvertake" x1="1" y1="0" x2="0" y2="0">
-              <stop offset="0%" stopColor="var(--overtake)" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="transparent" stopOpacity="0" />
+            <linearGradient id="rivalChassis3D" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#ef4444" />
+              <stop offset="30%" stopColor="#ffffff" stopOpacity="0.5" />
+              <stop offset="70%" stopColor="#dc2626" />
+              <stop offset="100%" stopColor="#7f1d1d" />
             </linearGradient>
 
-            {/* SAZI Car ERS Harvest Aura (Recover Mode) */}
-            <radialGradient id="ersHarvest" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="var(--recover)" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="transparent" stopOpacity="0" />
+            {/* Carbon Fiber Wing Gradient */}
+            <linearGradient id="carbonWing" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#334155" />
+              <stop offset="50%" stopColor="#0f172a" />
+              <stop offset="100%" stopColor="#1e293b" />
+            </linearGradient>
+
+            {/* 3D Tire Rim & Shading */}
+            <radialGradient id="tire3D" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#475569" />
+              <stop offset="50%" stopColor="#0f172a" />
+              <stop offset="85%" stopColor="#020617" />
+              <stop offset="100%" stopColor="#334155" />
             </radialGradient>
 
-            {/* Shadow filter for cars */}
-            <filter id="carShadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="2" stdDeviation="2" floodOpacity="0.4" />
+            {/* Helmet Visor Gloss */}
+            <linearGradient id="visorGloss" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#38bdf8" />
+              <stop offset="50%" stopColor="#e0f2fe" />
+              <stop offset="100%" stopColor="#0284c7" />
+            </linearGradient>
+
+            {/* Car Ground-Effect Shadow */}
+            <filter id="f1GroundShadow" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+              <feColorMatrix type="matrix" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.65 0"/>
+              <feOffset dx="0" dy="3" />
+              <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
             </filter>
+
+            {/* Overtake Aero Wake Trail */}
+            <linearGradient id="aeroWakeTrail" x1="1" y1="0" x2="0" y2="0">
+              <stop offset="0%" stopColor="var(--overtake)" stopOpacity="0.9" />
+              <stop offset="60%" stopColor="var(--overtake)" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="transparent" stopOpacity="0" />
+            </linearGradient>
+
+            {/* ERS Kinetic Harvest Pulse */}
+            <radialGradient id="ersHarvestHalo" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="var(--recover)" stopOpacity="0.8" />
+              <stop offset="60%" stopColor="var(--recover)" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="transparent" stopOpacity="0" />
+            </radialGradient>
           </defs>
 
-          {/* ── Infield / Background Detail ─────────────────────────────── */}
-          <rect x="0" y="0" width={TRACK_WIDTH} height={TRACK_HEIGHT} className="track-sim__bg-infield" />
+          {/* ── Environment / Landscape Ground ───────────────────────── */}
+          <rect x="0" y="0" width={TRACK_WIDTH} height={TRACK_HEIGHT} className="track-sim__ground" />
 
-          {/* Pit Building / Main Grandstand Graphic */}
-          <rect x="360" y="445" width="280" height="24" rx="3" className="track-sim__grandstand" />
-          <text x="500" y="461" textAnchor="middle" className="track-sim__grandstand-label">
-            PIT LANE & MAIN PADDOCK GRANDSTAND
-          </text>
-
-          {/* ── Runoff Areas (Gravel & Tarmac) ─────────────────────────── */}
-          {/* Turn 1 Runoff */}
+          {/* Grass Runoff / Infield Grounds */}
           <path
-            d="M 740 435 C 860 435, 935 385, 935 290 C 935 230, 890 190, 830 190"
-            className="track-sim__runoff"
-          />
-          {/* Turn 3 Hairpin Runoff */}
-          <path
-            d="M 260 10 C 160 10, 95 60, 95 140 C 95 210, 150 255, 230 255"
-            className="track-sim__runoff"
+            d="M 180 380 C 180 250, 240 180, 480 180 C 660 180, 800 240, 800 320 C 800 400, 550 440, 320 440 Z"
+            className="track-sim__infield-grass"
           />
 
-          {/* ── Track Surface Base ─────────────────────────────────────── */}
-          {/* Outer Border / Curb Support */}
+          {/* Gravel Traps (Turn 1 exit and Hairpin) */}
+          <path
+            d="M 750 445 C 870 445, 945 390, 945 290 C 945 220, 885 170, 810 170"
+            fill="none"
+            stroke="url(#gravelPattern)"
+            strokeWidth="50"
+            strokeLinecap="round"
+          />
+          <path
+            d="M 260 5 C 150 5, 80 55, 80 140 C 80 220, 140 265, 220 265"
+            fill="none"
+            stroke="url(#gravelPattern)"
+            strokeWidth="50"
+            strokeLinecap="round"
+          />
+
+          {/* ── Circuit Road Base & Real Asphalt ────────────────────────── */}
+          {/* Base Road Bed & Curb Support */}
           <path
             d={CIRCUIT_PATH}
-            className="track-sim__asphalt-outer"
-            strokeWidth="38"
+            className="track-sim__road-bed"
+            strokeWidth="48"
           />
 
-          {/* Main Asphalt Racing Strip */}
-          <path
-            ref={pathRef}
-            d={CIRCUIT_PATH}
-            className="track-sim__asphalt"
-            strokeWidth="30"
-          />
-
-          {/* Racing Line (Rubbered In) */}
+          {/* Asphalt Surface with Realistic Tarmac Shading */}
           <path
             d={CIRCUIT_PATH}
-            className="track-sim__racing-line"
-            strokeWidth="12"
+            className="track-sim__asphalt-base"
+            stroke="url(#realAsphalt)"
+            strokeWidth="42"
           />
 
-          {/* DRS Zone on Main Straight */}
+          {/* Asphalt Grain Texture Overlay */}
           <path
-            d="M 240 410 L 710 410"
+            d={CIRCUIT_PATH}
+            stroke="url(#asphaltGrain)"
+            strokeWidth="40"
+            fill="none"
+            opacity="0.75"
+          />
+
+          {/* Rubbered-in Racing Line / Groove */}
+          <path
+            d={CIRCUIT_PATH}
+            className="track-sim__rubber-line"
+            strokeWidth="16"
+          />
+
+          {/* ── Solid White Edge Markings (Inner & Outer Track Limits) ─── */}
+          {/* Outer Track Limit White Line */}
+          <path
+            d={CIRCUIT_PATH}
+            fill="none"
+            stroke="#ffffff"
+            strokeWidth="40"
+            strokeDasharray="none"
+            opacity="0.25"
+          />
+          {/* Crisp Inner & Outer Track Boundary Lines */}
+          <path
+            d={CIRCUIT_PATH}
+            className="track-sim__edge-line"
+            strokeWidth="39"
+          />
+
+          {/* DRS Zone Strip on Main Straight */}
+          <path
+            d="M 240 410 L 720 410"
             className={`track-sim__drs-zone ${isDrsActive ? 'track-sim__drs-zone--active' : ''}`}
-            strokeWidth="32"
+            strokeWidth="40"
           />
 
-          {/* Track Curbs (Apex & Exit Kerbs) */}
+          {/* Red & White FIA Apex Curbs */}
           {CURBS.map((c, idx) => (
-            <rect
-              key={idx}
-              x={c.x}
-              y={c.y}
-              width={c.w}
-              height={c.h}
-              transform={`rotate(${c.rot}, ${c.x + c.w / 2}, ${c.y + c.h / 2})`}
-              className="track-sim__curb"
-            />
+            <g key={idx} transform={`rotate(${c.rot}, ${c.x + c.w / 2}, ${c.y + c.h / 2})`}>
+              {/* Curb Base */}
+              <rect
+                x={c.x}
+                y={c.y}
+                width={c.w}
+                height={c.h}
+                rx="2"
+                fill="url(#kerbPattern)"
+                stroke="#111827"
+                strokeWidth="1"
+                className="track-sim__curb-shadow"
+              />
+            </g>
           ))}
 
-          {/* Start / Finish Line */}
-          <g transform="translate(320, 395)">
-            <line x1="0" y1="0" x2="0" y2="30" className="track-sim__sf-line" strokeWidth="4" />
-            <line x1="3" y1="0" x2="3" y2="30" className="track-sim__sf-checkers" strokeWidth="2" strokeDasharray="3 3" />
-            <text x="-8" y="-4" className="track-sim__sf-text">START / FINISH</text>
+          {/* Starting Grid Slots */}
+          <g className="track-sim__grid">
+            {GRID_SLOTS.map((slot, idx) => (
+              <g key={idx} transform={`translate(${slot.x}, ${slot.y})`}>
+                <rect x="-8" y="-4" width="16" height="8" fill="none" stroke="#ffffff" strokeWidth="1.5" />
+                <line x1="-8" y1="4" x2="-8" y2="-4" stroke="#facc15" strokeWidth="2" />
+                <text x="-4" y="2" className="track-sim__grid-num">{idx + 1}</text>
+              </g>
+            ))}
           </g>
 
-          {/* Sector 1 & 2 Split Markers */}
-          <g transform="translate(770, 155)">
-            <line x1="0" y1="0" x2="0" y2="30" className="track-sim__split-line" />
-            <text x="0" y="-4" className="track-sim__split-text">INT 1</text>
-          </g>
-          <g transform="translate(260, 215)">
-            <line x1="0" y1="0" x2="0" y2="30" className="track-sim__split-line" />
-            <text x="0" y="-4" className="track-sim__split-text">INT 2</text>
+          {/* Start / Finish Checkered Line */}
+          <g transform="translate(340, 390)">
+            <rect x="0" y="0" width="12" height="40" fill="#ffffff" />
+            <rect x="0" y="0" width="6" height="10" fill="#000000" />
+            <rect x="6" y="10" width="6" height="10" fill="#000000" />
+            <rect x="0" y="20" width="6" height="10" fill="#000000" />
+            <rect x="6" y="30" width="6" height="10" fill="#000000" />
+            <text x="-12" y="-6" className="track-sim__sf-text">START / FINISH LINE</text>
           </g>
 
-          {/* ── CAR 3: Field / Backmarker Car ─────────────────────────── */}
+          {/* Brake Distance Boards (150m, 100m, 50m approaching Turn 1) */}
+          <g className="track-sim__brake-boards">
+            <g transform="translate(710, 435)">
+              <rect x="-10" y="-8" width="20" height="12" rx="1" fill="#0f172a" stroke="#ffffff" strokeWidth="1" />
+              <text x="0" y="1" textAnchor="middle" fill="#ffffff" fontSize="7" fontWeight="bold" fontFamily="monospace">150</text>
+            </g>
+            <g transform="translate(740, 435)">
+              <rect x="-10" y="-8" width="20" height="12" rx="1" fill="#0f172a" stroke="#ffffff" strokeWidth="1" />
+              <text x="0" y="1" textAnchor="middle" fill="#ffffff" fontSize="7" fontWeight="bold" fontFamily="monospace">100</text>
+            </g>
+            <g transform="translate(770, 435)">
+              <rect x="-10" y="-8" width="20" height="12" rx="1" fill="#0f172a" stroke="#ffffff" strokeWidth="1" />
+              <text x="0" y="1" textAnchor="middle" fill="#ffffff" fontSize="7" fontWeight="bold" fontFamily="monospace">50</text>
+            </g>
+          </g>
+
+          {/* DRS Detection Point Marker */}
+          <g transform="translate(200, 410)">
+            <line x1="0" y1="-22" x2="0" y2="22" stroke="var(--accent)" strokeWidth="3" strokeDasharray="3 3" />
+            <text x="-4" y="-26" className="track-sim__drs-marker-text">DRS DETECTION</text>
+          </g>
+
+          {/* Sector Splits */}
+          <g transform="translate(770, 145)">
+            <line x1="0" y1="0" x2="0" y2="46" stroke="#fbbf24" strokeWidth="2.5" strokeDasharray="4 2" />
+            <text x="0" y="-6" className="track-sim__sector-split-text">INT 1 (SECTOR 1)</text>
+          </g>
+          <g transform="translate(260, 205)">
+            <line x1="0" y1="0" x2="0" y2="46" stroke="#fbbf24" strokeWidth="2.5" strokeDasharray="4 2" />
+            <text x="0" y="-6" className="track-sim__sector-split-text">INT 2 (SECTOR 2)</text>
+          </g>
+
+          {/* Hidden reference path for exact coordinate sampling */}
+          <path ref={pathRef} d={CIRCUIT_PATH} fill="none" stroke="none" />
+
+          {/* ── CAR 3: Field / Midfield Car (Realistic 3D Top-Down) ───── */}
           <g
             transform={`translate(${carState.field.x}, ${carState.field.y}) rotate(${carState.field.angle})`}
-            className="track-sim__car-group"
+            filter="url(#f1GroundShadow)"
           >
+            {/* Diffuser & floor shadow */}
+            <rect x="-18" y="-7" width="36" height="14" rx="4" fill="#0f172a" />
             {/* Chassis */}
-            <rect x="-14" y="-6" width="28" height="12" rx="4" fill="#64748b" filter="url(#carShadow)" />
-            {/* Tires */}
-            <rect x="-12" y="-8" width="6" height="3" rx="1" fill="#1e293b" />
-            <rect x="-12" y="5" width="6" height="3" rx="1" fill="#1e293b" />
-            <rect x="7" y="-8" width="5" height="3" rx="1" fill="#1e293b" />
-            <rect x="7" y="5" width="5" height="3" rx="1" fill="#1e293b" />
-            {/* Cockpit */}
-            <rect x="-2" y="-3" width="8" height="6" rx="2" fill="#0f172a" />
-            <circle cx="2" cy="0" r="2" fill="#f8fafc" />
+            <path d="M -18 -6 L 8 -6 L 18 -3 L 23 0 L 18 3 L 8 6 L -18 6 Z" fill="#64748b" />
+            {/* Front & Rear Wing */}
+            <rect x="20" y="-9" width="3" height="18" rx="1" fill="#334155" />
+            <rect x="-20" y="-9" width="3" height="18" rx="1" fill="#334155" />
+            {/* 3D Tires */}
+            <rect x="-16" y="-12" width="9" height="5" rx="1.5" fill="url(#tire3D)" stroke="#94a3b8" strokeWidth="0.5" />
+            <rect x="-16" y="7" width="9" height="5" rx="1.5" fill="url(#tire3D)" stroke="#94a3b8" strokeWidth="0.5" />
+            <rect x="9" y="-11" width="8" height="4.5" rx="1.5" fill="url(#tire3D)" stroke="#94a3b8" strokeWidth="0.5" />
+            <rect x="9" y="6.5" width="8" height="4.5" rx="1.5" fill="url(#tire3D)" stroke="#94a3b8" strokeWidth="0.5" />
+            {/* Halo */}
+            <path d="M -2 -4 L 8 0 L -2 4" stroke="#94a3b8" strokeWidth="2" fill="none" />
+            <circle cx="2" cy="0" r="2.5" fill="#f8fafc" />
           </g>
 
-          {/* ── CAR 2: Rival Competitor Car ───────────────────────────── */}
+          {/* ── CAR 2: Rival Competitor (Realistic 3D F1 Model) ───────── */}
           <g
             transform={`translate(${carState.rival.x}, ${carState.rival.y}) rotate(${carState.rival.angle})`}
-            className="track-sim__car-group track-sim__car-rival"
+            className="track-sim__car-rival"
+            filter="url(#f1GroundShadow)"
           >
-            {/* Rear wing */}
-            <rect x="-16" y="-8" width="3" height="16" rx="1" fill="#ef4444" />
-            {/* Chassis body */}
+            {/* Ground effect carbon floor */}
+            <path d="M -19 -8 L 10 -8 L 22 -4 L 26 0 L 22 4 L 10 8 L -19 8 Z" fill="#090d16" />
+
+            {/* Rear wing with endplates */}
+            <rect x="-22" y="-11" width="4" height="22" rx="1" fill="url(#carbonWing)" />
+            <rect x="-22" y="-11" width="5" height="3" fill="#ef4444" />
+            <rect x="-22" y="8" width="5" height="3" fill="#ef4444" />
+
+            {/* 3D Curved Body Chassis */}
             <path
-              d="M -15 -5 L 5 -5 L 14 -3 L 17 0 L 14 3 L 5 5 L -15 5 Z"
-              fill="#e2e8f0"
-              stroke="#94a3b8"
+              d="M -19 -6.5 L 6 -6.5 L 18 -4 L 24 0 L 18 4 L 6 6.5 L -19 6.5 Z"
+              fill="url(#rivalChassis3D)"
+              stroke="#7f1d1d"
               strokeWidth="0.8"
-              filter="url(#carShadow)"
             />
-            {/* Livery stripe */}
-            <path d="M -10 -2 L 12 0 L -10 2 Z" fill="#ef4444" />
-            {/* Tires */}
-            <rect x="-13" y="-9" width="7" height="4" rx="1.5" fill="#0f172a" stroke="#ef4444" strokeWidth="0.5" />
-            <rect x="-13" y="5" width="7" height="4" rx="1.5" fill="#0f172a" stroke="#ef4444" strokeWidth="0.5" />
-            <rect x="7" y="-8.5" width="6" height="3.5" rx="1.5" fill="#0f172a" stroke="#ef4444" strokeWidth="0.5" />
-            <rect x="7" y="5" width="6" height="3.5" rx="1.5" fill="#0f172a" stroke="#ef4444" strokeWidth="0.5" />
-            {/* Front Wing */}
-            <rect x="15" y="-7" width="2" height="14" rx="1" fill="#e2e8f0" />
-            {/* Cockpit & Helmet */}
-            <rect x="-3" y="-3" width="8" height="6" rx="2" fill="#0f172a" />
-            <circle cx="1" cy="0" r="2.2" fill="#fbbf24" />
+
+            {/* Sidepod Radiator Air Inlets */}
+            <rect x="-3" y="-7.5" width="8" height="2" rx="1" fill="#020617" />
+            <rect x="-3" y="5.5" width="8" height="2" rx="1" fill="#020617" />
+
+            {/* Multi-element Front Wing with Vortex Generators */}
+            <rect x="22" y="-11" width="3" height="22" rx="1" fill="url(#carbonWing)" />
+            <line x1="24" y1="-10" x2="24" y2="10" stroke="#ef4444" strokeWidth="1" />
+
+            {/* 3D Pirelli Tires with Compound Stripe (Red Softs) */}
+            <rect x="-16" y="-12.5" width="9" height="5" rx="1.5" fill="url(#tire3D)" stroke="#ef4444" strokeWidth="0.8" />
+            <rect x="-16" y="7.5" width="9" height="5" rx="1.5" fill="url(#tire3D)" stroke="#ef4444" strokeWidth="0.8" />
+            <rect x="10" y="-11.5" width="8" height="4.5" rx="1.5" fill="url(#tire3D)" stroke="#ef4444" strokeWidth="0.8" />
+            <rect x="10" y="7" width="8" height="4.5" rx="1.5" fill="url(#tire3D)" stroke="#ef4444" strokeWidth="0.8" />
+
+            {/* Halo Protection Structure */}
+            <path d="M -3 -4.5 L 9 0 L -3 4.5" stroke="#475569" strokeWidth="2.5" fill="none" />
+            <circle cx="2" cy="0" r="3" fill="#fbbf24" />
+            <path d="M 2 -2 L 5 0 L 2 2" stroke="#0f172a" strokeWidth="1.5" fill="none" />
+
             {/* Label */}
-            <text x="-4" y="-12" className="track-sim__car-label track-sim__car-label--rival">
-              P{(raceState?.position ?? 2) - 1 > 0 ? (raceState?.position ?? 2) - 1 : 1} RIVAL
+            <text x="0" y="-16" className="track-sim__car-label track-sim__car-label--rival">
+              P{(raceState?.position ?? 2) - 1 > 0 ? (raceState?.position ?? 2) - 1 : 1} RIVAL (+{gapAhead.toFixed(2)}s)
             </text>
           </g>
 
-          {/* ── CAR 1: SAZI AI F1 Car (Telemetry Star) ────────────────── */}
+          {/* ── CAR 1: SAZI AI F1 Car (Ultra-Realistic 3D Flagship) ───── */}
           <g
             transform={`translate(${carState.sazi.x}, ${carState.sazi.y}) rotate(${carState.sazi.angle})`}
-            className={`track-sim__car-group track-sim__car-sazi track-sim__car-sazi--${action.toLowerCase()}`}
+            className={`track-sim__car-sazi track-sim__car-sazi--${action.toLowerCase()}`}
+            filter="url(#f1GroundShadow)"
           >
-            {/* OVERTAKE Mode: Aero Wake / Speed Streaks */}
+            {/* OVERTAKE Mode: Twin Aerodynamic Wake Vortices & Speed Blur */}
             {action === 'OVERTAKE' && (
-              <g className="track-sim__aero-trail">
-                <rect x="-42" y="-5" width="28" height="10" rx="4" fill="url(#aeroOvertake)" />
-                <line x1="-16" y1="-7" x2="-36" y2="-10" stroke="var(--overtake)" strokeWidth="1.5" strokeDasharray="3 2" />
-                <line x1="-16" y1="7" x2="-36" y2="10" stroke="var(--overtake)" strokeWidth="1.5" strokeDasharray="3 2" />
+              <g className="track-sim__aero-trails">
+                <rect x="-56" y="-7" width="38" height="14" rx="4" fill="url(#aeroWakeTrail)" />
+                <line x1="-22" y1="-10" x2="-48" y2="-14" stroke="var(--overtake)" strokeWidth="2" strokeDasharray="4 2" />
+                <line x1="-22" y1="10" x2="-48" y2="14" stroke="var(--overtake)" strokeWidth="2" strokeDasharray="4 2" />
               </g>
             )}
 
-            {/* RECOVER Mode: ERS Energy Harvesting Aura */}
+            {/* RECOVER Mode: Kinetic MGU-K Energy Regeneration Halo */}
             {action === 'RECOVER' && (
-              <circle cx="-10" cy="0" r="18" fill="url(#ersHarvest)" className="track-sim__ers-pulse" />
+              <circle cx="-12" cy="0" r="24" fill="url(#ersHarvestHalo)" className="track-sim__ers-harvest-ring" />
             )}
 
-            {/* HOLD Mode: Steady slipstream lines */}
-            {action === 'HOLD' && (
-              <line x1="-16" y1="0" x2="-28" y2="0" stroke="var(--accent)" strokeWidth="1" strokeDasharray="2 3" opacity="0.6" />
-            )}
+            {/* Ground-Effect Diffuser & Carbon Underside Floor */}
+            <path d="M -20 -8.5 L 11 -8.5 L 23 -4.5 L 27 0 L 23 4.5 L 11 8.5 L -20 8.5 Z" fill="#040914" />
 
-            {/* Rear Wing (DRS Flap Opens in Overtake / Active DRS) */}
+            {/* Multi-element 3D Rear Wing Assembly (DRS Flap Opens in Overtake) */}
             <rect
-              x={isDrsActive ? -17 : -15}
-              y="-9"
-              width="3"
-              height="18"
-              rx="1"
+              x={isDrsActive ? -25 : -23}
+              y="-12"
+              width="4.5"
+              height="24"
+              rx="1.2"
               className={`track-sim__f1-rear-wing ${isDrsActive ? 'track-sim__f1-rear-wing--open' : ''}`}
-            />
-
-            {/* Main Aerodynamic Chassis Body */}
-            <path
-              d="M -15 -6 L 4 -6 L 15 -3.5 L 19 0 L 15 3.5 L 4 6 L -15 6 Z"
-              className="track-sim__f1-chassis"
-              filter="url(#carShadow)"
-            />
-
-            {/* Team Livery Accent Pattern */}
-            <path
-              d="M -12 -3 L 13 0 L -12 3 Z"
-              className="track-sim__f1-livery"
-            />
-
-            {/* Halo Protection System */}
-            <path
-              d="M -2 -3 L 6 0 L -2 3"
+              fill="url(#carbonWing)"
               stroke="var(--accent)"
-              strokeWidth="1.5"
-              fill="none"
+              strokeWidth="0.8"
+            />
+            {/* Rear Wing Endplates */}
+            <rect x="-24" y="-12" width="6" height="3" rx="0.5" fill="var(--accent)" />
+            <rect x="-24" y="9" width="6" height="3" rx="0.5" fill="var(--accent)" />
+
+            {/* 3D Main Aerodynamic Chassis Body */}
+            <path
+              d="M -20 -7 L 7 -7 L 19 -4.2 L 25 0 L 19 4.2 L 7 7 L -20 7 Z"
+              fill="url(#saziChassis3D)"
+              stroke="var(--accent)"
+              strokeWidth="1"
             />
 
-            {/* Tires with Compound Ring */}
-            <rect x="-13" y="-10" width="7" height="4" rx="1.5" className="track-sim__f1-tire" />
-            <rect x="-13" y="6" width="7" height="4" rx="1.5" className="track-sim__f1-tire" />
-            <rect x="7" y="-9.5" width="6.5" height="3.5" rx="1.5" className="track-sim__f1-tire" />
-            <rect x="7" y="6" width="6.5" height="3.5" rx="1.5" className="track-sim__f1-tire" />
+            {/* Sidepod 3D Sculpting & Radiator Intakes */}
+            <path d="M -5 -8 L 5 -8 L 7 -6 L -5 -6 Z" fill="#060e1a" />
+            <path d="M -5 6 L 7 6 L 5 8 L -5 8 Z" fill="#060e1a" />
+            {/* Engine Cover Shark Fin */}
+            <line x1="-16" y1="0" x2="2" y2="0" stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" />
 
-            {/* Front Wing with Vortex Endplates */}
-            <rect x="17" y="-8.5" width="2.5" height="17" rx="1" className="track-sim__f1-front-wing" />
+            {/* 3D Multi-Tier Front Wing with Vortex Flaps */}
+            <rect x="23" y="-12" width="3.5" height="24" rx="1.2" fill="url(#carbonWing)" stroke="var(--accent)" strokeWidth="0.6" />
+            <line x1="25" y1="-11" x2="25" y2="11" stroke="var(--accent)" strokeWidth="1.2" />
 
-            {/* Cockpit & Driver Helmet */}
-            <rect x="-4" y="-3.5" width="8" height="7" rx="2.5" fill="#060e18" />
-            <circle cx="1" cy="0" r="2.4" className="track-sim__f1-helmet" />
+            {/* 3D Pirelli Tires with Medium/Hard Color Stripe */}
+            <rect x="-17" y="-13" width="9.5" height="5.5" rx="1.8" fill="url(#tire3D)" stroke="var(--accent)" strokeWidth="1" />
+            <rect x="-17" y="7.5" width="9.5" height="5.5" rx="1.8" fill="url(#tire3D)" stroke="var(--accent)" strokeWidth="1" />
+            <rect x="11" y="-12" width="8.5" height="5" rx="1.8" fill="url(#tire3D)" stroke="var(--accent)" strokeWidth="1" />
+            <rect x="11" y="7" width="8.5" height="5" rx="1.8" fill="url(#tire3D)" stroke="var(--accent)" strokeWidth="1" />
 
-            {/* Car Marker & Badge */}
-            <text x="-4" y="-14" className="track-sim__car-label track-sim__car-label--sazi">
-              P{raceState?.position ?? 1} SAZI AI
+            {/* Halo Titanium Bar System */}
+            <path d="M -3 -5 L 10 0 L -3 5" stroke="var(--accent)" strokeWidth="3" fill="none" strokeLinecap="round" />
+            <circle cx="3" cy="0" r="3.2" fill="url(#visorGloss)" />
+
+            {/* Overhead T-Camera */}
+            <rect x="-6" y="-1" width="3" height="2" rx="0.5" fill="#facc15" />
+
+            {/* Label */}
+            <text x="0" y="-17" className="track-sim__car-label track-sim__car-label--sazi">
+              P{raceState?.position ?? 1} SAZI AI ({Math.round(speed)} KM/H)
             </text>
           </g>
         </svg>
       </div>
+
+      {/* ── Advanced Detailed Telemetry Statistics Drawer ─────────────── */}
+      {showDetailedStats && (
+        <div className="track-sim__telemetry-drawer">
+          {/* Column 1: Pedals & G-Force Meter */}
+          <div className="track-sim__drawer-card">
+            <div className="track-sim__drawer-header">
+              <Gauge size={13} />
+              <span>PEDALS & G-FORCE</span>
+            </div>
+            <div className="track-sim__drawer-body">
+              {/* Throttle & Brake Pedals */}
+              <div className="track-sim__pedal-row">
+                <span className="track-sim__pedal-label">THR</span>
+                <div className="track-sim__pedal-bar">
+                  <div
+                    className="track-sim__pedal-fill track-sim__pedal-fill--throttle"
+                    style={{ width: `${telemetryDynamics.throttle}%` }}
+                  />
+                </div>
+                <span className="track-sim__pedal-val mono">{telemetryDynamics.throttle}%</span>
+              </div>
+
+              <div className="track-sim__pedal-row">
+                <span className="track-sim__pedal-label">BRK</span>
+                <div className="track-sim__pedal-bar">
+                  <div
+                    className="track-sim__pedal-fill track-sim__pedal-fill--brake"
+                    style={{ width: `${telemetryDynamics.brake}%` }}
+                  />
+                </div>
+                <span className="track-sim__pedal-val mono">{telemetryDynamics.brake}%</span>
+              </div>
+
+              {/* G-Force Readouts */}
+              <div className="track-sim__g-row">
+                <div className="track-sim__g-box">
+                  <span className="track-sim__g-label">LATERAL G</span>
+                  <span className="track-sim__g-val mono">{telemetryDynamics.latG.toFixed(1)}G</span>
+                </div>
+                <div className="track-sim__g-box">
+                  <span className="track-sim__g-label">LONGITUDINAL G</span>
+                  <span className={`track-sim__g-val mono ${telemetryDynamics.lonG < 0 ? 'track-sim__g-val--neg' : ''}`}>
+                    {telemetryDynamics.lonG > 0 ? `+${telemetryDynamics.lonG.toFixed(1)}` : telemetryDynamics.lonG.toFixed(1)}G
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Column 2: Powertrain, Gear & RPM rev lights */}
+          <div className="track-sim__drawer-card">
+            <div className="track-sim__drawer-header">
+              <Zap size={13} />
+              <span>GEARBOX & POWER UNIT</span>
+            </div>
+            <div className="track-sim__drawer-body">
+              {/* Gear and RPM */}
+              <div className="track-sim__gear-row">
+                <div className="track-sim__gear-badge">
+                  <span className="track-sim__gear-title">GEAR</span>
+                  <span className="track-sim__gear-num mono">{telemetryDynamics.gear}</span>
+                </div>
+                <div className="track-sim__rpm-box">
+                  <span className="track-sim__rpm-val mono">{telemetryDynamics.rpm.toLocaleString()} <small>RPM</small></span>
+                  {/* F1 Rev Limiter LEDs */}
+                  <div className="track-sim__led-bar">
+                    {Array.from({ length: 15 }).map((_, i) => (
+                      <span
+                        key={i}
+                        className={`track-sim__led ${i < activeLeds ? (i < 5 ? 'track-sim__led--green' : i < 10 ? 'track-sim__led--yellow' : 'track-sim__led--red') : ''}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Energy Deployed & Budget */}
+              <div className="track-sim__stat-pair">
+                <span>ENERGY USED / LAP:</span>
+                <strong className="mono">{(raceState?.energy_deployed_mj ?? 1.85).toFixed(2)} / {(raceState?.deployment_budget_mj ?? 4.0).toFixed(1)} MJ</strong>
+              </div>
+              <div className="track-sim__stat-pair">
+                <span>MGU-K DEPLOYMENT:</span>
+                <strong className="mono" style={{ color: action === 'OVERTAKE' ? 'var(--overtake)' : action === 'RECOVER' ? 'var(--recover)' : 'var(--accent)' }}>
+                  {action === 'OVERTAKE' ? '120 kW (MAX ATTACK)' : action === 'RECOVER' ? '+85 kW (HARVESTING)' : '45 kW (CRUISE)'}
+                </strong>
+              </div>
+            </div>
+          </div>
+
+          {/* Column 3: 4-Corner Tire Pressures & Temps */}
+          <div className="track-sim__drawer-card">
+            <div className="track-sim__drawer-header">
+              <Thermometer size={13} />
+              <span>TIRE & BRAKE TELEMETRY</span>
+            </div>
+            <div className="track-sim__drawer-body">
+              <div className="track-sim__tires-grid">
+                <div className="track-sim__tire-cell">
+                  <span className="track-sim__tire-pos">FL</span>
+                  <span className="track-sim__tire-temp">102°C</span>
+                  <span className="track-sim__tire-psi">22.4 PSI</span>
+                </div>
+                <div className="track-sim__tire-cell">
+                  <span className="track-sim__tire-pos">FR</span>
+                  <span className="track-sim__tire-temp">104°C</span>
+                  <span className="track-sim__tire-psi">22.6 PSI</span>
+                </div>
+                <div className="track-sim__tire-cell">
+                  <span className="track-sim__tire-pos">RL</span>
+                  <span className="track-sim__tire-temp">99°C</span>
+                  <span className="track-sim__tire-psi">20.8 PSI</span>
+                </div>
+                <div className="track-sim__tire-cell">
+                  <span className="track-sim__tire-pos">RR</span>
+                  <span className="track-sim__tire-temp">101°C</span>
+                  <span className="track-sim__tire-psi">21.0 PSI</span>
+                </div>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>CARBON DISC TEMP:</span>
+                <strong className="mono" style={{ color: telemetryDynamics.brakeTemp > 800 ? '#ef4444' : '#f59e0b' }}>
+                  {telemetryDynamics.brakeTemp}°C
+                </strong>
+              </div>
+            </div>
+          </div>
+
+          {/* Column 4: Lap Times, Splits & Track Environment */}
+          <div className="track-sim__drawer-card">
+            <div className="track-sim__drawer-header">
+              <Wind size={13} />
+              <span>TIMING & ENVIRONMENT</span>
+            </div>
+            <div className="track-sim__drawer-body">
+              <div className="track-sim__stat-pair">
+                <span>EST. LAP TIME:</span>
+                <strong className="mono">1:18.420</strong>
+              </div>
+              <div className="track-sim__stat-pair">
+                <span>DELTA TO BEST:</span>
+                <strong className="mono" style={{ color: 'var(--success)' }}>-0.342s (PURPLE)</strong>
+              </div>
+              <div className="track-sim__stat-pair">
+                <span>TRACK STATUS:</span>
+                <strong className="track-sim__flag-green"><Radio size={10} /> GREEN FLAG</strong>
+              </div>
+              <div className="track-sim__stat-pair">
+                <span>TRACK / AIR TEMP:</span>
+                <strong className="mono">38.5°C / 27.0°C DRY</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Bottom Telemetry Legend / Bar ───────────────────────────────── */}
       <div className="track-sim__footer">
         <div className="track-sim__legend">
           <div className="track-sim__legend-item">
             <span className="track-sim__legend-dot track-sim__legend-dot--sazi" />
-            <span>SAZI AI CAR (P{raceState?.position ?? 1})</span>
+            <span>SAZI AI RACER (P{raceState?.position ?? 1})</span>
           </div>
           <div className="track-sim__legend-item">
             <span className="track-sim__legend-dot track-sim__legend-dot--rival" />
-            <span>RIVAL COMPETITOR (+{gapAhead.toFixed(2)}s)</span>
+            <span>RIVAL (+{gapAhead.toFixed(2)}s)</span>
           </div>
           <div className="track-sim__legend-item">
             <span className="track-sim__legend-dot track-sim__legend-dot--drs" />
             <span>DRS DETECTION & ACTIVATION STRAIGHT</span>
           </div>
+          <div className="track-sim__legend-item">
+            <span className="track-sim__legend-dot track-sim__legend-dot--curb" />
+            <span>FIA REGULATION APEX CURBS</span>
+          </div>
         </div>
 
         <div className="track-sim__live-ers">
-          <span className="track-sim__ers-label">ERS STORE:</span>
+          <span className="track-sim__ers-label">ERS BATTERY:</span>
           <div className="track-sim__ers-bar">
             <div
               className={`track-sim__ers-fill track-sim__ers-fill--${action.toLowerCase()}`}

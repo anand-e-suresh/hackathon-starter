@@ -1,4 +1,4 @@
-/* TrackSimulation.css — 2D Live Circuit Simulation Styling */
+/* TrackSimulation.css — Realistic Asphalt Grand Prix Circuit & 3D F1 Telemetry Visualizer */
 
 .track-sim {
   background: var(--bg-card);
@@ -14,18 +14,18 @@
 }
 
 .track-sim--overtake {
-  border-color: rgba(220, 38, 38, 0.4);
-  box-shadow: 0 0 20px var(--overtake-dim);
+  border-color: rgba(220, 38, 38, 0.45);
+  box-shadow: 0 0 24px var(--overtake-dim);
 }
 
 .track-sim--hold {
-  border-color: rgba(249, 115, 22, 0.4);
-  box-shadow: 0 0 20px var(--hold-dim);
+  border-color: rgba(249, 115, 22, 0.45);
+  box-shadow: 0 0 24px var(--hold-dim);
 }
 
 .track-sim--recover {
-  border-color: rgba(16, 231, 130, 0.4);
-  box-shadow: 0 0 20px var(--recover-dim);
+  border-color: rgba(16, 231, 130, 0.45);
+  box-shadow: 0 0 24px var(--recover-dim);
 }
 
 /* ── Top Header / HUD ────────────────────────────────────────── */
@@ -73,7 +73,7 @@
 }
 
 .track-sim__circuit-name {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--text-secondary);
@@ -100,6 +100,9 @@
   letter-spacing: 0.08em;
   color: var(--text-muted);
   text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .track-sim__hud-val {
@@ -117,7 +120,7 @@
 }
 
 .track-sim__drs {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-dim);
 }
 .track-sim__drs--avail { color: var(--hold); }
@@ -159,12 +162,12 @@
   border-color: rgba(16, 231, 130, 0.3);
 }
 
-/* Camera button */
+/* Header buttons */
 .track-sim__cam-btn {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 9px;
+  padding: 5px 10px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   color: var(--text-secondary);
@@ -193,207 +196,420 @@
 .track-sim__canvas-wrapper {
   position: relative;
   width: 100%;
-  height: 380px;
-  background: var(--bg-base);
+  height: 420px;
+  background: #080f18;
   overflow: hidden;
+}
+
+[data-theme="light"] .track-sim__canvas-wrapper {
+  background: #eae3d5;
 }
 
 .track-sim__svg {
   width: 100%;
   height: 100%;
   display: block;
-  transition: viewBox 0.4s ease;
+  transition: viewBox 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Track elements */
-.track-sim__bg-infield {
-  fill: var(--bg-base);
-  transition: fill var(--transition);
+/* Realistic Ground Environment */
+.track-sim__ground {
+  fill: #0c1420;
 }
 
-.track-sim__grandstand {
-  fill: var(--bg-card);
-  stroke: var(--border);
-  stroke-width: 1;
+[data-theme="light"] .track-sim__ground {
+  fill: #f1ebd9;
 }
 
-.track-sim__grandstand-label {
-  font-family: var(--font-sans);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  fill: var(--text-muted);
+.track-sim__infield-grass {
+  fill: #132032;
+  opacity: 0.6;
 }
 
-.track-sim__runoff {
+[data-theme="light"] .track-sim__infield-grass {
+  fill: #dfd6c4;
+  opacity: 0.8;
+}
+
+/* Road and Asphalt Layers */
+.track-sim__road-bed {
   fill: none;
-  stroke: var(--border-subtle);
-  stroke-width: 44;
-  opacity: 0.4;
-}
-
-.track-sim__asphalt-outer {
-  fill: none;
-  stroke: var(--border);
+  stroke: #101620;
   stroke-linecap: round;
   stroke-linejoin: round;
-  transition: stroke var(--transition);
 }
 
-.track-sim__asphalt {
+[data-theme="light"] .track-sim__road-bed {
+  stroke: #c4b9a5;
+}
+
+.track-sim__asphalt-base {
   fill: none;
-  stroke: var(--bg-surface);
   stroke-linecap: round;
   stroke-linejoin: round;
-  transition: stroke var(--transition);
 }
 
-.track-sim__racing-line {
+.track-sim__rubber-line {
   fill: none;
-  stroke: var(--border-subtle);
+  stroke: #0a0d12;
   stroke-linecap: round;
   stroke-linejoin: round;
-  opacity: 0.5;
+  opacity: 0.75;
 }
 
+/* Edge Boundary Lines */
+.track-sim__edge-line {
+  fill: none;
+  stroke: #ffffff;
+  stroke-dasharray: 2 12;
+  opacity: 0.7;
+}
+
+/* DRS Zone */
 .track-sim__drs-zone {
   fill: none;
   stroke: var(--accent-dim);
   stroke-linecap: butt;
-  stroke-dasharray: 6 3;
-  opacity: 0.6;
+  stroke-dasharray: 8 4;
+  opacity: 0.7;
 }
 
 .track-sim__drs-zone--active {
   stroke: var(--success);
-  opacity: 0.8;
-  animation: pulse-dot 1.5s infinite ease-in-out;
+  opacity: 0.9;
+  animation: pulse-dot 1.2s infinite ease-in-out;
 }
 
-.track-sim__curb {
-  fill: #dc2626;
-  stroke: #ffffff;
-  stroke-width: 1.5;
-  stroke-dasharray: 6 6;
+.track-sim__curb-shadow {
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));
 }
 
-.track-sim__sf-line {
-  stroke: #ffffff;
-}
-
-.track-sim__sf-checkers {
-  stroke: #000000;
+/* Track Markings & Text */
+.track-sim__grid-num {
+  font-family: var(--font-mono);
+  font-size: 6px;
+  font-weight: 800;
+  fill: #ffffff;
+  text-anchor: middle;
 }
 
 .track-sim__sf-text {
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 800;
-  fill: var(--text-muted);
+  letter-spacing: 0.08em;
+  fill: #e2e8f0;
 }
 
-.track-sim__split-line {
-  stroke: var(--accent);
-  stroke-width: 2;
-  stroke-dasharray: 4 2;
-}
-
-.track-sim__split-text {
+.track-sim__drs-marker-text {
   font-family: var(--font-mono);
   font-size: 8px;
   font-weight: 700;
   fill: var(--accent);
+}
+
+.track-sim__sector-split-text {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  fill: #fbbf24;
   text-anchor: middle;
 }
 
-/* ── Animated Cars ───────────────────────────────────────────── */
-.track-sim__car-group {
-  cursor: pointer;
-  transition: filter var(--transition);
-}
-
+/* ── Realistic 3D F1 Car Elements ────────────────────────────── */
 .track-sim__car-label {
   font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   text-anchor: middle;
   pointer-events: none;
   paint-order: stroke fill;
-  stroke-width: 2px;
+  stroke: rgba(0, 0, 0, 0.85);
+  stroke-width: 3px;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .track-sim__car-label--sazi {
   fill: var(--accent);
-  stroke: var(--bg-card);
 }
 
 .track-sim__car-label--rival {
   fill: #f87171;
-  stroke: var(--bg-card);
-}
-
-/* SAZI Car Elements */
-.track-sim__f1-chassis {
-  fill: var(--accent);
-  stroke: var(--bg-card);
-  stroke-width: 0.8;
-}
-
-.track-sim__f1-livery {
-  fill: var(--accent-text);
-  opacity: 0.9;
-}
-
-.track-sim__f1-front-wing {
-  fill: var(--accent-text);
 }
 
 .track-sim__f1-rear-wing {
-  fill: var(--accent);
   transition: transform 0.2s ease;
 }
 
 .track-sim__f1-rear-wing--open {
   fill: var(--success);
-  transform: scaleX(0.7);
+  transform: scaleX(0.65);
 }
 
-.track-sim__f1-tire {
-  fill: #0f172a;
-  stroke: var(--accent);
-  stroke-width: 0.8;
-}
-
-.track-sim__f1-helmet {
-  fill: #fbbf24;
-}
-
-/* Mode-specific Car Accents */
-.track-sim__car-sazi--overtake .track-sim__f1-chassis {
-  fill: var(--overtake);
-}
-
-.track-sim__car-sazi--overtake .track-sim__f1-tire {
-  stroke: var(--overtake);
-}
-
-.track-sim__car-sazi--recover .track-sim__f1-chassis {
-  fill: var(--recover);
-}
-
-.track-sim__car-sazi--recover .track-sim__f1-tire {
-  stroke: var(--recover);
-}
-
-.track-sim__aero-trail {
+.track-sim__aero-trails {
   animation: fade-in 0.2s ease;
 }
 
-.track-sim__ers-pulse {
-  animation: pulse-dot 1s ease-in-out infinite;
+.track-sim__ers-harvest-ring {
+  animation: pulse-dot 0.8s ease-in-out infinite;
+}
+
+/* ── Detailed Telemetry Statistics Drawer ────────────────────── */
+.track-sim__telemetry-drawer {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  animation: fade-in 0.25s ease;
+}
+
+.track-sim__drawer-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.track-sim__drawer-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 6px;
+}
+
+.track-sim__drawer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Pedal Bars */
+.track-sim__pedal-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.track-sim__pedal-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-muted);
+  width: 28px;
+}
+
+.track-sim__pedal-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.track-sim__pedal-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.15s ease-out;
+}
+
+.track-sim__pedal-fill--throttle {
+  background: linear-gradient(90deg, #10e782, #22c55e);
+  box-shadow: 0 0 8px rgba(16, 231, 130, 0.4);
+}
+
+.track-sim__pedal-fill--brake {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+}
+
+.track-sim__pedal-val {
+  font-size: 11px;
+  font-weight: 700;
+  width: 36px;
+  text-align: right;
+  color: var(--text-primary);
+}
+
+/* G-Force Box */
+.track-sim__g-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.track-sim__g-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.track-sim__g-label {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.track-sim__g-val {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.track-sim__g-val--neg {
+  color: var(--danger);
+}
+
+/* Gearbox & RPM Box */
+.track-sim__gear-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.track-sim__gear-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+}
+
+.track-sim__gear-title {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.track-sim__gear-num {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.track-sim__rpm-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.track-sim__rpm-val {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.track-sim__rpm-val small {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* F1 LED Rev Indicator Bar */
+.track-sim__led-bar {
+  display: flex;
+  gap: 3px;
+  background: var(--bg-surface);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+.track-sim__led {
+  flex: 1;
+  height: 6px;
+  background: #1e293b;
+  border-radius: 1px;
+  transition: background 0.08s ease;
+}
+
+.track-sim__led--green  { background: #10e782; box-shadow: 0 0 6px #10e782; }
+.track-sim__led--yellow { background: #facc15; box-shadow: 0 0 6px #facc15; }
+.track-sim__led--red    { background: #ef4444; box-shadow: 0 0 6px #ef4444; animation: pulse-dot 0.3s infinite; }
+
+/* 4-Corner Tires Grid */
+.track-sim__tires-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.track-sim__tire-cell {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.track-sim__tire-pos {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.track-sim__tire-temp {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: #10e782;
+}
+
+.track-sim__tire-psi {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+/* Key Value Pairs in Drawer */
+.track-sim__stat-pair {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.track-sim__stat-pair strong {
+  color: var(--text-primary);
+}
+
+.track-sim__flag-green {
+  color: #10e782;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* ── Bottom Footer / Telemetry Bar ───────────────────────────── */
@@ -436,6 +652,7 @@
 .track-sim__legend-dot--sazi  { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
 .track-sim__legend-dot--rival { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
 .track-sim__legend-dot--drs   { background: var(--success); border-radius: 2px; }
+.track-sim__legend-dot--curb  { background: #dc2626; border: 1px solid #ffffff; border-radius: 1px; }
 
 .track-sim__live-ers {
   display: flex;
@@ -475,9 +692,18 @@
 }
 
 /* ── Responsive adjustments ─────────────────────────────────── */
+@media (max-width: 1100px) {
+  .track-sim__telemetry-drawer {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 800px) {
   .track-sim__canvas-wrapper {
-    height: 280px;
+    height: 300px;
+  }
+  .track-sim__telemetry-drawer {
+    grid-template-columns: 1fr;
   }
   .track-sim__hud-metrics {
     gap: 8px;
