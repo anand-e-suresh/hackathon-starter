@@ -1,0 +1,7 @@
+fastf1
+pandas
+numpy
+xgboost
+scikit-learn
+shap
+pytest
