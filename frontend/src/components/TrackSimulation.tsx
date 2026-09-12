@@ -62,6 +62,7 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
   const [carProgress, setCarProgress] = useState<number>(0.15); // 0 to 1
   const [cameraFollow, setCameraFollow] = useState<boolean>(false);
   const [showDetailedStats, setShowDetailedStats] = useState<boolean>(true);
+  const [overtakeProgress, setOvertakeProgress] = useState<number>(-1.0); // -1.0 = trailing in slipstream, 0 = wheel-to-wheel, +1.0 = ahead of rival
 
   // Measure path length on mount
   useEffect(() => {
@@ -70,7 +71,7 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
     }
   }, []);
 
-  // Update car progress continuously when running
+  // Update car progress and overtake dynamics continuously when running
   useEffect(() => {
     let animId: number;
     let lastTime = performance.now();
@@ -83,6 +84,20 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
         const speedKph = raceState?.speed_kph ?? 285;
         const speedDelta = (speedKph / 300) * 0.045 * dt;
         setCarProgress((prev) => (prev + speedDelta) % 1);
+
+        // Overtake vs energy preservation dynamics
+        const isOvertakeMode = prediction?.action === 'OVERTAKE';
+        const targetOvertake = isOvertakeMode ? 1.0 : -1.0;
+        const transitionSpeed = isOvertakeMode ? 0.38 : 0.42; // ~2.5s to complete pass or tuck back
+
+        setOvertakeProgress((prev) => {
+          if (prev < targetOvertake) {
+            return Math.min(targetOvertake, prev + transitionSpeed * dt);
+          } else if (prev > targetOvertake) {
+            return Math.max(targetOvertake, prev - transitionSpeed * dt);
+          }
+          return prev;
+        });
       }
 
       animId = requestAnimationFrame(animate);
@@ -90,46 +105,68 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
 
     animId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animId);
-  }, [isRunning, raceState]);
+  }, [isRunning, raceState, prediction]);
 
-  // Compute positions & heading angles for cars
+  // Compute positions & heading angles for cars with realistic overtaking lanes
   const carState = useMemo(() => {
     if (!pathRef.current || totalLength <= 1) {
       return {
-        sazi: { x: 400, y: 410, angle: 0 },
-        rival: { x: 470, y: 410, angle: 0 },
+        sazi: { x: 400, y: 410, angle: 0, latOffset: 0 },
+        rival: { x: 470, y: 410, angle: 0, latOffset: 0 },
         field: { x: 260, y: 30, angle: 180 },
       };
     }
 
     const path = pathRef.current;
 
-    // SAZI car
-    const saziDist = (carProgress * totalLength) % totalLength;
+    // Base battle position along the Silverstone lap
+    const rivalBaseDist = (carProgress * totalLength) % totalLength;
+
+    // SAZI's longitudinal distance relative to rival:
+    // When overtakeProgress = -1.0: trailing by ~24m (-0.038 of circuit)
+    // When overtakeProgress = 0.0: side-by-side wheel-to-wheel
+    // When overtakeProgress = +1.0: leading by ~24m (+0.038 of circuit)
+    const saziRelativeDelta = overtakeProgress * 0.038;
+    const saziDist = ((carProgress + saziRelativeDelta + 1) * totalLength) % totalLength;
+
+    // Lateral steering offset (perpendicular to racing line):
+    // When cars are within passing proximity (|overtakeProgress| < 0.75), SAZI dives inside (-8.5px), rival holds outside (+4.0px)
+    const proximity = Math.max(0, 1 - Math.abs(overtakeProgress) / 0.75);
+    const saziLatOffset = -proximity * 8.5; // Inside lane dive
+    const rivalLatOffset = proximity * 4.0; // Outside defense line
+
+    // SAZI point & normal vector
     const p1 = path.getPointAtLength(saziDist);
     const p2 = path.getPointAtLength((saziDist + 2) % totalLength);
-    const saziAngle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
+    const saziRad = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+    const saziAngle = saziRad * (180 / Math.PI);
+    const snx = -Math.sin(saziRad);
+    const sny = Math.cos(saziRad);
+    const saziX = p1.x + snx * saziLatOffset;
+    const saziY = p1.y + sny * saziLatOffset;
 
-    // Rival car offset by gap
-    const gapSec = raceState ? raceState.gap_ahead_s : 1.35;
-    const rivalOffset = Math.min(Math.max((gapSec / 75), 0.035), 0.16);
-    const rivalDist = ((carProgress + rivalOffset) * totalLength) % totalLength;
-    const rp1 = path.getPointAtLength(rivalDist);
-    const rp2 = path.getPointAtLength((rivalDist + 2) % totalLength);
-    const rivalAngle = Math.atan2(rp2.y - rp1.y, rp2.x - rp1.x) * (180 / Math.PI);
+    // Rival point & normal vector
+    const rp1 = path.getPointAtLength(rivalBaseDist);
+    const rp2 = path.getPointAtLength((rivalBaseDist + 2) % totalLength);
+    const rivalRad = Math.atan2(rp2.y - rp1.y, rp2.x - rp1.x);
+    const rivalAngle = rivalRad * (180 / Math.PI);
+    const rnx = -Math.sin(rivalRad);
+    const rny = Math.cos(rivalRad);
+    const rivalX = rp1.x + rnx * rivalLatOffset;
+    const rivalY = rp1.y + rny * rivalLatOffset;
 
     // Midfield car
-    const fieldDist = ((carProgress - 0.22 + 1) * totalLength) % totalLength;
+    const fieldDist = ((carProgress - 0.24 + 1) * totalLength) % totalLength;
     const fp1 = path.getPointAtLength(fieldDist);
     const fp2 = path.getPointAtLength((fieldDist + 2) % totalLength);
     const fieldAngle = Math.atan2(fp2.y - fp1.y, fp2.x - fp1.x) * (180 / Math.PI);
 
     return {
-      sazi: { x: p1.x, y: p1.y, angle: saziAngle },
-      rival: { x: rp1.x, y: rp1.y, angle: rivalAngle },
+      sazi: { x: saziX, y: saziY, angle: saziAngle, latOffset: saziLatOffset },
+      rival: { x: rivalX, y: rivalY, angle: rivalAngle, latOffset: rivalLatOffset },
       field: { x: fp1.x, y: fp1.y, angle: fieldAngle },
     };
-  }, [carProgress, totalLength, raceState]);
+  }, [carProgress, totalLength, overtakeProgress]);
 
   // Telemetry attributes
   const action = prediction?.action ?? 'HOLD';
@@ -688,6 +725,34 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             <circle cx="2" cy="0" r="2.5" fill="#f8fafc" />
           </g>
 
+          {/* Aerodynamic Slipstream Low-Pressure Tow (energy preservation when trailing) */}
+          {overtakeProgress < 0.1 && (
+            <g className="track-sim__slipstream-flow">
+              <line
+                x1={carState.rival.x}
+                y1={carState.rival.y}
+                x2={carState.sazi.x}
+                y2={carState.sazi.y}
+                stroke="#38bdf8"
+                strokeWidth="2.5"
+                strokeDasharray="8 6"
+                opacity="0.65"
+                className="track-sim__slipstream-line"
+              />
+              <line
+                x1={carState.rival.x}
+                y1={carState.rival.y}
+                x2={carState.sazi.x}
+                y2={carState.sazi.y}
+                stroke="#10e782"
+                strokeWidth="1.2"
+                strokeDasharray="4 6"
+                opacity="0.5"
+                className="track-sim__slipstream-anim-fast"
+              />
+            </g>
+          )}
+
           {/* ── CAR 2: Rival Competitor (Realistic 3D F1 Model) ───────── */}
           <g
             transform={`translate(${carState.rival.x}, ${carState.rival.y}) rotate(${carState.rival.angle})`}
@@ -720,8 +785,11 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             <circle cx="2" cy="0" r="3" fill="#fbbf24" />
             <path d="M 2 -2 L 5 0 L 2 2" stroke="#0f172a" strokeWidth="1.5" fill="none" />
 
+            {/* Dynamic Label Based on Actual On-Track Position */}
             <text x="0" y="-16" className="track-sim__car-label track-sim__car-label--rival">
-              P{(raceState?.position ?? 2) - 1 > 0 ? (raceState?.position ?? 2) - 1 : 1} RIVAL (+{gapAhead.toFixed(2)}s)
+              {overtakeProgress >= 0.15
+                ? `P2 RIVAL (+0.65s)`
+                : `P1 RIVAL (LEADER)`}
             </text>
           </g>
 
@@ -734,15 +802,28 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             {/* OVERTAKE Mode: Twin Aerodynamic Wake Vortices & Speed Blur */}
             {action === 'OVERTAKE' && (
               <g className="track-sim__aero-trails">
-                <rect x="-56" y="-7" width="38" height="14" rx="4" fill="url(#aeroWakeTrail)" />
-                <line x1="-22" y1="-10" x2="-48" y2="-14" stroke="var(--overtake)" strokeWidth="2" strokeDasharray="4 2" />
-                <line x1="-22" y1="10" x2="-48" y2="14" stroke="var(--overtake)" strokeWidth="2" strokeDasharray="4 2" />
+                <rect x="-65" y="-7" width="45" height="14" rx="4" fill="url(#aeroWakeTrail)" />
+                <line x1="-24" y1="-10" x2="-62" y2="-15" stroke="var(--accent)" strokeWidth="2.5" strokeDasharray="5 2" />
+                <line x1="-24" y1="10" x2="-62" y2="15" stroke="var(--accent)" strokeWidth="2.5" strokeDasharray="5 2" />
+                <polygon points="-22,0 -42,-3 -52,0 -42,3" fill="#f59e0b" opacity="0.95" />
               </g>
             )}
 
-            {/* RECOVER Mode: Kinetic MGU-K Energy Regeneration Halo */}
-            {action === 'RECOVER' && (
-              <circle cx="-12" cy="0" r="24" fill="url(#ersHarvestHalo)" className="track-sim__ers-harvest-ring" />
+            {/* Wheel-to-Wheel Sparks during passing maneuver */}
+            {action === 'OVERTAKE' && Math.abs(overtakeProgress) < 0.5 && (
+              <g className="track-sim__wheel-sparks">
+                <circle cx="0" cy={carState.sazi.latOffset > 0 ? -12 : 12} r="2" fill="#facc15" className="track-sim__spark-anim" />
+                <circle cx="8" cy={carState.sazi.latOffset > 0 ? -11 : 11} r="1.5" fill="#f97316" />
+                <circle cx="-6" cy={carState.sazi.latOffset > 0 ? -12 : 12} r="1.8" fill="#ffffff" />
+              </g>
+            )}
+
+            {/* RECOVER Mode: Kinetic MGU-K Energy Regeneration Field & Orbit */}
+            {(action === 'RECOVER' || telemetryDynamics.brake > 30) && (
+              <g className="track-sim__regen-field">
+                <circle cx="-12" cy="0" r="26" fill="url(#ersHarvestHalo)" className="track-sim__ers-harvest-ring" />
+                <circle cx="-12" cy="0" r="18" stroke="#10e782" strokeWidth="1" fill="none" strokeDasharray="4 4" className="track-sim__regen-orbit" />
+              </g>
             )}
 
             {/* Ground-Effect Diffuser & Carbon Underside Floor */}
@@ -762,6 +843,16 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             />
             <rect x="-24" y="-12" width="6" height="3" rx="0.5" fill="var(--accent)" />
             <rect x="-24" y="9" width="6" height="3" rx="0.5" fill="var(--accent)" />
+
+            {/* High-Intensity FIA Rear Rain / Regen Flashing LED */}
+            <circle
+              cx="-23"
+              cy="0"
+              r="2.5"
+              fill={action === 'RECOVER' ? '#10e782' : '#ef4444'}
+              className={action === 'RECOVER' ? 'track-sim__rear-regen-light' : ''}
+              filter={action === 'RECOVER' ? 'drop-shadow(0 0 6px #10e782)' : 'none'}
+            />
 
             {/* 3D Main Aerodynamic Chassis Body */}
             <path
@@ -787,11 +878,42 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             <circle cx="3" cy="0" r="3.2" fill="url(#visorGloss)" />
             <rect x="-6" y="-1" width="3" height="2" rx="0.5" fill="#facc15" />
 
+            {/* Dynamic Label Based on Actual On-Track Position */}
             <text x="0" y="-17" className="track-sim__car-label track-sim__car-label--sazi">
-              P{raceState?.position ?? 1} SAZI AI ({Math.round(speed)} KM/H)
+              {overtakeProgress >= 0.15
+                ? `P1 SAZI AI (LEADER • ATTACK MODE)`
+                : `P2 SAZI AI (${action === 'RECOVER' ? 'HARVESTING +120kW' : action === 'HOLD' ? 'SLIPSTREAM TOW' : 'ATTACKING'})`}
             </text>
           </g>
         </svg>
+
+        {/* ── On-Canvas Live Broadcast Maneuver Banner ────────────────── */}
+        <div className={`track-sim__canvas-banner track-sim__canvas-banner--${action.toLowerCase()}`}>
+          {action === 'OVERTAKE' && (
+            <>
+              <span className="banner-icon">⚔️</span>
+              <span className="banner-text">
+                <strong>OVERTAKE MANEUVER ACTIVE:</strong> INSIDE LINE DIVE • MGU-K FULL DEPLOY (-120kW) • DRS OPEN
+              </span>
+            </>
+          )}
+          {action === 'RECOVER' && (
+            <>
+              <span className="banner-icon">🔋</span>
+              <span className="banner-text">
+                <strong>ENERGY PRESERVATION ACTIVE:</strong> TACTICAL SLIPSTREAM TOW • MGU-K REGEN (+120kW) • TYRE SAVING
+              </span>
+            </>
+          )}
+          {action === 'HOLD' && (
+            <>
+              <span className="banner-icon">🛡️</span>
+              <span className="banner-text">
+                <strong>STRATEGIC ENERGY MANAGEMENT:</strong> MAINTAINING TACTICAL GAP (1.3s) • PRESERVING 4.0MJ BUDGET
+              </span>
+            </>
+          )}
+        </div>
 
         {/* ── F1 TV Broadcast Onboard Telemetry Graphic (Floating HUD) ── */}
         <div className="track-sim__onboard-hud">

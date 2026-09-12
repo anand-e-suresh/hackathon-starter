@@ -1032,6 +1032,111 @@
 .track-sim__hud-flow--rech  { color: #10e782; }
 .track-sim__hud-flow--bal   { color: var(--text-muted); }
 
+/* ── Overtake & Energy Preservation Live Maneuvers ───────────── */
+.track-sim__slipstream-line {
+  animation: slipstream-flow 0.4s linear infinite;
+}
+
+.track-sim__slipstream-anim-fast {
+  animation: slipstream-flow 0.25s linear infinite reverse;
+}
+
+@keyframes slipstream-flow {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -20; }
+}
+
+/* FIA Rear Regen Flashing Light (4Hz Blink) */
+.track-sim__rear-regen-light {
+  animation: f1-regen-flash 0.25s steps(2, start) infinite;
+}
+
+@keyframes f1-regen-flash {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px #10e782); }
+  50% { opacity: 0.15; filter: none; }
+}
+
+/* Regen Orbit Ring */
+.track-sim__regen-orbit {
+  animation: spin-orbit 1.8s linear infinite;
+  transform-origin: -12px 0;
+}
+
+@keyframes spin-orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Wheel Sparks */
+.track-sim__spark-anim {
+  animation: spark-jitter 0.1s ease-in-out infinite alternate;
+}
+
+@keyframes spark-jitter {
+  from { transform: scale(1); opacity: 0.8; }
+  to { transform: scale(1.4); opacity: 1; }
+}
+
+/* On-Canvas Maneuver Banner */
+.track-sim__canvas-banner {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: rgba(10, 15, 26, 0.88);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 10;
+  pointer-events: none;
+  animation: banner-pop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.track-sim__canvas-banner--overtake {
+  border-color: rgba(249, 115, 22, 0.6);
+  color: #fed7aa;
+  box-shadow: 0 0 16px rgba(249, 115, 22, 0.3);
+}
+
+.track-sim__canvas-banner--overtake strong {
+  color: #fb923c;
+}
+
+.track-sim__canvas-banner--recover {
+  border-color: rgba(16, 231, 130, 0.6);
+  color: #bbf7d0;
+  box-shadow: 0 0 16px rgba(16, 231, 130, 0.25);
+}
+
+.track-sim__canvas-banner--recover strong {
+  color: #10e782;
+}
+
+.track-sim__canvas-banner--hold {
+  border-color: rgba(56, 189, 248, 0.6);
+  color: #bae6fd;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
+}
+
+.track-sim__canvas-banner--hold strong {
+  color: #38bdf8;
+}
+
+@keyframes banner-pop {
+  from { opacity: 0; transform: translate(-50%, -8px) scale(0.96); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
 /* ── Responsive adjustments ─────────────────────────────────── */
 @media (max-width: 1100px) {
   .track-sim__telemetry-drawer {
