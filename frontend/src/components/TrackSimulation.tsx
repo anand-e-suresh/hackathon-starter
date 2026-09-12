@@ -541,13 +541,6 @@ export default function TrackSimulation({
               <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
             </filter>
 
-            {/* Overtake Aero Wake Trail */}
-            <linearGradient id="aeroWakeTrail" x1="1" y1="0" x2="0" y2="0">
-              <stop offset="0%" stopColor="var(--overtake)" stopOpacity="0.9" />
-              <stop offset="60%" stopColor="var(--overtake)" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="transparent" stopOpacity="0" />
-            </linearGradient>
-
             {/* ERS Kinetic Harvest Pulse */}
             <radialGradient id="ersHarvestHalo" cx="50%" cy="50%" r="50%">
               <stop offset="0%" stopColor="var(--recover)" stopOpacity="0.8" />
@@ -841,25 +834,6 @@ export default function TrackSimulation({
             className={`track-sim__car-sazi track-sim__car-sazi--${action.toLowerCase()}`}
             filter="url(#f1GroundShadow)"
           >
-            {/* OVERTAKE Mode: Twin Aerodynamic Wake Vortices & Speed Blur */}
-            {action === 'OVERTAKE' && (
-              <g className="track-sim__aero-trails">
-                <rect x="-65" y="-7" width="45" height="14" rx="4" fill="url(#aeroWakeTrail)" />
-                <line x1="-24" y1="-10" x2="-62" y2="-15" stroke="var(--accent)" strokeWidth="2.5" strokeDasharray="5 2" />
-                <line x1="-24" y1="10" x2="-62" y2="15" stroke="var(--accent)" strokeWidth="2.5" strokeDasharray="5 2" />
-                <polygon points="-22,0 -42,-3 -52,0 -42,3" fill="#f59e0b" opacity="0.95" />
-              </g>
-            )}
-
-            {/* Wheel-to-Wheel Sparks during passing maneuver */}
-            {action === 'OVERTAKE' && Math.abs(overtakeProgress) < 0.5 && (
-              <g className="track-sim__wheel-sparks">
-                <circle cx="0" cy={carState.sazi.latOffset > 0 ? -12 : 12} r="2" fill="#facc15" className="track-sim__spark-anim" />
-                <circle cx="8" cy={carState.sazi.latOffset > 0 ? -11 : 11} r="1.5" fill="#f97316" />
-                <circle cx="-6" cy={carState.sazi.latOffset > 0 ? -12 : 12} r="1.8" fill="#ffffff" />
-              </g>
-            )}
-
             {/* RECOVER Mode: Kinetic MGU-K Energy Regeneration Field & Orbit */}
             {(action === 'RECOVER' || telemetryDynamics.brake > 30) && (
               <g className="track-sim__regen-field">
