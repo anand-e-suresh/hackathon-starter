@@ -9,15 +9,37 @@
  * - Detailed ERS Hybrid Power (MGU-K deployment kW, battery storage %, FIA 4MJ budget, regeneration)
  * - F1 TV Broadcast Onboard Telemetry Halo Graphic floating on circuit canvas
  */
-import { useEffect, useRef, useState, useMemo } from 'react';
-import { Zap, Eye, Flag, ChevronDown, ChevronUp, Gauge, Wind, ArrowUp, ArrowDown, Timer, BatteryMedium, Disc, Cpu, RefreshCw } from 'lucide-react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import {
+  Zap,
+  Eye,
+  Flag,
+  ChevronDown,
+  ChevronUp,
+  Gauge,
+  Wind,
+  ArrowUp,
+  ArrowDown,
+  Timer,
+  BatteryMedium,
+  Disc,
+  Cpu,
+  RefreshCw,
+  Sliders,
+  Radio,
+  Play,
+  CornerDownRight,
+  X,
+} from 'lucide-react';
 import type { RaceState, PredictResponse } from '../api/client';
+import { setPredictedAction } from '../api/mockData';
 import {
   TRACK_WIDTH,
   TRACK_HEIGHT,
   CIRCUIT_PATH,
   CURBS,
   SILVERSTONE_TURNS,
+  type CircuitTurnMarker,
   getSilverstoneTelemetry,
 } from '../utils/silverstoneTrack';
 import './TrackSimulation.css';
@@ -44,6 +66,53 @@ export default function TrackSimulation({
   const [showDetailedStats, setShowDetailedStats] = useState<boolean>(true);
   const [overtakeProgress, setOvertakeProgress] = useState<number>(-1.0); // -1.0 = trailing in slipstream, 0 = wheel-to-wheel, +1.0 = ahead of rival
 
+  // Feature 1: Driver & Pit Wall Strategy Overrides
+  const [controlMode, setControlMode] = useState<'AUTO' | 'MANUAL'>('AUTO');
+  const [manualAction, setManualAction] = useState<PredictResponse['action']>('OVERTAKE');
+  const [engineMode, setEngineMode] = useState<'STRAT 1' | 'STRAT 5' | 'STRAT 12'>('STRAT 1');
+  const [pitStatus, setPitStatus] = useState<'ON TRACK' | 'BOX THIS LAP' | 'IN PIT LANE'>('ON TRACK');
+
+  // Active strategy action: Manual user override vs AI Prediction
+  const action: PredictResponse['action'] =
+    controlMode === 'MANUAL' ? manualAction : (prediction?.action ?? 'HOLD');
+
+  // Feature 2: Interactive Corner Telemetry Inspector
+  const [selectedTurn, setSelectedTurn] = useState<CircuitTurnMarker | null>(null);
+
+  // Feature 3: Interactive Lap Progress Scrubber (Playhead)
+  const [isScrubbing, setIsScrubbing] = useState<boolean>(false);
+
+  // Tactical Actions
+  const handleSetManualAction = useCallback((act: PredictResponse['action']) => {
+    setControlMode('MANUAL');
+    setManualAction(act);
+    setPredictedAction(act);
+  }, []);
+
+  const handleTogglePitCall = useCallback(() => {
+    if (pitStatus === 'ON TRACK') {
+      setPitStatus('BOX THIS LAP');
+      setTimeout(() => {
+        setPitStatus('IN PIT LANE');
+        setTimeout(() => {
+          setPitStatus('ON TRACK');
+        }, 2400); // 2.4s stationary pit stop
+      }, 3000);
+    } else {
+      setPitStatus('ON TRACK');
+    }
+  }, [pitStatus]);
+
+  const handleScrubberChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value);
+    setCarProgress(val);
+    setIsScrubbing(true);
+  }, []);
+
+  const handleLiveSync = useCallback(() => {
+    setIsScrubbing(false);
+  }, []);
+
   // Measure path length on mount
   useEffect(() => {
     if (pathRef.current) {
@@ -60,25 +129,28 @@ export default function TrackSimulation({
       const dt = Math.min(0.08, (now - lastTime) / 1000);
       lastTime = now;
 
-      if (isRunning) {
+      if (isRunning && !isScrubbing) {
         setCarProgress((prev) => {
           // Authentic Silverstone circuit physics:
           // Evaluate instantaneous speed from the 18-turn track profile
           const isDrs = (prev > 0.88 || prev < 0.14) || (prev >= 0.34 && prev <= 0.40);
           const tel = getSilverstoneTelemetry(prev, isDrs);
+          
+          // Boost speed slightly if in aggressive engine mode STRAT 1
+          const stratMultiplier = engineMode === 'STRAT 1' ? 1.04 : engineMode === 'STRAT 12' ? 0.95 : 1.0;
+          const currentSpeed = tel.speed * stratMultiplier;
+
           // Realistic Silverstone lap speed progression:
           // Average speed across lap is ~243.5 km/h.
-          // Visual calibration factor ~0.038 gives ~26.3s per complete lap:
-          // The Loop (88 km/h) -> 0.0137 / sec (visibly crawls through hairpin)
-          // Hangar Straight (336 km/h) -> 0.0524 / sec (surges at almost 4x speed)
-          const speedDelta = (tel.speed / 243.5) * 0.038 * dt;
+          // Visual calibration factor ~0.038 gives ~26.3s per complete lap
+          const speedDelta = (currentSpeed / 243.5) * 0.038 * dt;
           return (prev + speedDelta) % 1;
         });
 
         // Overtake vs energy preservation dynamics
-        const isOvertakeMode = prediction?.action === 'OVERTAKE';
+        const isOvertakeMode = action === 'OVERTAKE';
         const targetOvertake = isOvertakeMode ? 1.0 : -1.0;
-        const transitionSpeed = isOvertakeMode ? 0.38 : 0.42; // ~2.5s to complete pass or tuck back
+        const transitionSpeed = isOvertakeMode ? 0.38 : 0.42;
 
         setOvertakeProgress((prev) => {
           if (prev < targetOvertake) {
@@ -95,7 +167,7 @@ export default function TrackSimulation({
 
     animId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animId);
-  }, [isRunning, raceState, prediction]);
+  }, [isRunning, isScrubbing, action, engineMode]);
 
   // Compute positions & heading angles for cars with realistic overtaking lanes
   const carState = useMemo(() => {
@@ -159,7 +231,6 @@ export default function TrackSimulation({
   }, [carProgress, totalLength, overtakeProgress]);
 
   // Telemetry attributes
-  const action = prediction?.action ?? 'HOLD';
   const ers = raceState?.ers_pct ?? 65;
   const gapAhead = raceState?.gap_ahead_s ?? 1.34;
   const currentLap = raceState?.lap ?? 1;
@@ -402,8 +473,191 @@ export default function TrackSimulation({
         </div>
       </div>
 
+      {/* ── Driver & Pit Wall Strategy Deck (Interactive Controls) ─────── */}
+      <div className="track-sim__control-deck" role="toolbar" aria-label="Pit Wall & Driver Tactical Overrides">
+        {/* Mode Toggle AUTO vs MANUAL */}
+        <div className="track-sim__deck-group">
+          <span className="track-sim__deck-label"><Radio size={11} /> PIT WALL MODE:</span>
+          <div className="track-sim__mode-toggle">
+            <button
+              type="button"
+              className={`track-sim__mode-btn ${controlMode === 'AUTO' ? 'track-sim__mode-btn--active-auto' : ''}`}
+              onClick={() => {
+                setControlMode('AUTO');
+                if (prediction) setPredictedAction(prediction.action);
+              }}
+              title="Autonomous AI Motorsport Strategy Engine"
+            >
+              <Cpu size={12} />
+              <span>AI AUTO</span>
+            </button>
+            <button
+              type="button"
+              className={`track-sim__mode-btn ${controlMode === 'MANUAL' ? 'track-sim__mode-btn--active-manual' : ''}`}
+              onClick={() => {
+                setControlMode('MANUAL');
+                setPredictedAction(manualAction);
+              }}
+              title="Manual Driver Override (Steering Wheel Tactical Buttons)"
+            >
+              <Sliders size={12} />
+              <span>MANUAL DRIVER</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Tactical Strategy Action Buttons */}
+        <div className="track-sim__deck-group">
+          <span className="track-sim__deck-label">TACTICAL OVERRIDE:</span>
+          <div className="track-sim__tactical-buttons">
+            <button
+              type="button"
+              className={`tactical-btn tactical-btn--attack ${action === 'OVERTAKE' ? 'tactical-btn--active' : ''}`}
+              onClick={() => handleSetManualAction('OVERTAKE')}
+              title="Deploy full 120kW MGU-K hybrid boost, open DRS, and execute inside lane dive"
+            >
+              <Zap size={12} />
+              <span>⚔️ ATTACK</span>
+            </button>
+            <button
+              type="button"
+              className={`tactical-btn tactical-btn--balanced ${action === 'HOLD' ? 'tactical-btn--active' : ''}`}
+              onClick={() => handleSetManualAction('HOLD')}
+              title="Cruise in slipstream, preserve 4.0MJ lap quota, manage tire thermals"
+            >
+              <Flag size={12} />
+              <span>🛡️ BALANCED</span>
+            </button>
+            <button
+              type="button"
+              className={`tactical-btn tactical-btn--harvest ${action === 'RECOVER' ? 'tactical-btn--active' : ''}`}
+              onClick={() => handleSetManualAction('RECOVER')}
+              title="Lift-and-coast into braking zones, maximize kinetic energy regeneration"
+            >
+              <RefreshCw size={12} />
+              <span>🔋 HARVEST</span>
+            </button>
+          </div>
+        </div>
+
+        {/* PU Engine Map & Pit Command */}
+        <div className="track-sim__deck-group">
+          <span className="track-sim__deck-label">PU ENGINE MAP:</span>
+          <div className="track-sim__engine-maps">
+            {(['STRAT 1', 'STRAT 5', 'STRAT 12'] as const).map((map) => (
+              <button
+                key={map}
+                type="button"
+                className={`engine-map-btn ${engineMode === map ? 'engine-map-btn--active' : ''}`}
+                onClick={() => setEngineMode(map)}
+                title={map === 'STRAT 1' ? 'Strat 1: Full Quali Deploy (-120kW)' : map === 'STRAT 5' ? 'Strat 5: Standard Race Pace' : 'Strat 12: Super Harvest'}
+              >
+                {map}
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            className={`tactical-btn tactical-btn--box ${pitStatus !== 'ON TRACK' ? 'tactical-btn--box-active' : ''}`}
+            onClick={handleTogglePitCall}
+            title="Radio Call: Box this lap for pit stop"
+          >
+            <Disc size={12} />
+            <span>{pitStatus === 'ON TRACK' ? 'BOX THIS LAP' : pitStatus}</span>
+          </button>
+        </div>
+      </div>
+
       {/* ── Realistic Circuit SVG Canvas ───────────────────────────────── */}
       <div className="track-sim__canvas-wrapper">
+        {/* ── Interactive Corner Telemetry Inspector Card ───────────── */}
+        {selectedTurn && (
+          <div className="track-sim__corner-inspector" role="dialog" aria-label={`Corner Telemetry for ${selectedTurn.name}`}>
+            <div className="corner-inspector__header">
+              <div className="corner-inspector__title-row">
+                <span className="corner-inspector__badge">T{selectedTurn.number}</span>
+                <div className="corner-inspector__name-col">
+                  <h4 className="corner-inspector__name">{selectedTurn.name}</h4>
+                  <span className="corner-inspector__sub">SILVERSTONE SECTOR {selectedTurn.sector}</span>
+                </div>
+                <span className={`corner-inspector__type-tag tag--${selectedTurn.type}`}>{selectedTurn.type.toUpperCase()}</span>
+              </div>
+              <button
+                type="button"
+                className="corner-inspector__close"
+                onClick={() => setSelectedTurn(null)}
+                aria-label="Close corner inspector"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="corner-inspector__grid">
+              <div className="corner-stat">
+                <span className="corner-stat__lbl">APEX SPEED</span>
+                <strong className="corner-stat__val mono">{selectedTurn.apexSpeed} <small>KM/H</small></strong>
+              </div>
+              <div className="corner-stat">
+                <span className="corner-stat__lbl">ENTRY SPEED</span>
+                <strong className="corner-stat__val mono">{selectedTurn.entrySpeed} <small>KM/H</small></strong>
+              </div>
+              <div className="corner-stat">
+                <span className="corner-stat__lbl">EXIT SPEED</span>
+                <strong className="corner-stat__val mono">{selectedTurn.exitSpeed} <small>KM/H</small></strong>
+              </div>
+              <div className="corner-stat">
+                <span className="corner-stat__lbl">GEAR</span>
+                <strong className="corner-stat__val mono corner-stat__gear">G{selectedTurn.gear}</strong>
+              </div>
+              <div className="corner-stat">
+                <span className="corner-stat__lbl">LATERAL LOAD</span>
+                <strong className="corner-stat__val mono" style={{ color: selectedTurn.latG > 4.0 ? '#ef4444' : '#f59e0b' }}>
+                  {selectedTurn.latG}G
+                </strong>
+              </div>
+              <div className="corner-stat">
+                <span className="corner-stat__lbl">BRAKING ZONE</span>
+                <strong className="corner-stat__val mono">
+                  {selectedTurn.brakingDistanceM > 0 ? `${selectedTurn.brakingDistanceM}m (${selectedTurn.brakingG}G)` : 'FLAT OUT (0m)'}
+                </strong>
+              </div>
+            </div>
+
+            <div className="corner-inspector__meta">
+              <div className="meta-item">
+                <span>TACTICAL & DRS NOTES:</span>
+                <p>{selectedTurn.drsRelevance}</p>
+              </div>
+              <div className="meta-item-split">
+                <span>EXIT FULL THROTTLE: <strong className="mono">{selectedTurn.fullThrottleExitPct}%</strong></span>
+                <span>KERB AGGRESSIVENESS: <strong className="mono">{selectedTurn.kerbAggressiveness.toUpperCase()}</strong></span>
+              </div>
+            </div>
+
+            <div className="corner-inspector__actions">
+              <button
+                type="button"
+                className="corner-btn corner-btn--jump"
+                onClick={() => {
+                  setCarProgress(selectedTurn.trackProgress);
+                  setIsScrubbing(true);
+                }}
+              >
+                <CornerDownRight size={13} />
+                <span>JUMP CAR TO APEX ({Math.round(selectedTurn.trackProgress * 100)}% LAP)</span>
+              </button>
+              <button
+                type="button"
+                className="corner-btn corner-btn--dismiss"
+                onClick={() => setSelectedTurn(null)}
+              >
+                DISMISS
+              </button>
+            </div>
+          </div>
+        )}
+
         <svg
           viewBox={viewBox}
           className="track-sim__svg"
@@ -684,14 +938,34 @@ export default function TrackSimulation({
               {/* Official FIA Silverstone Turn Markers (T1 to T18) */}
               <g className="track-sim__turn-markers">
                 {SILVERSTONE_TURNS.map((t) => (
-                  <g key={t.number} transform={`translate(${t.x}, ${t.y})`} className="track-sim__turn-marker">
+                  <g
+                    key={t.number}
+                    transform={`translate(${t.x}, ${t.y})`}
+                    className={`track-sim__turn-marker ${selectedTurn?.number === t.number ? 'track-sim__turn-marker--selected' : ''}`}
+                    onClick={() => setSelectedTurn(t)}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Inspect Turn ${t.number}: ${t.name}`}
+                  >
+                    {selectedTurn?.number === t.number && (
+                      <circle
+                        cx="0"
+                        cy="0"
+                        r="14"
+                        fill="none"
+                        stroke="var(--accent)"
+                        strokeWidth="1.8"
+                        strokeDasharray="4 2"
+                        className="track-sim__turn-beacon"
+                      />
+                    )}
                     <circle
                       cx="0"
                       cy="0"
                       r="7.5"
                       fill="#0b1320"
-                      stroke={t.type === 'high-speed' ? '#00f0ff' : t.type === 'hairpin' ? '#ef4444' : '#10e782'}
-                      strokeWidth="1.2"
+                      stroke={selectedTurn?.number === t.number ? 'var(--accent)' : t.type === 'high-speed' ? '#00f0ff' : t.type === 'hairpin' ? '#ef4444' : '#10e782'}
+                      strokeWidth={selectedTurn?.number === t.number ? '2.2' : '1.2'}
                       className="track-sim__turn-circle"
                     />
                     <text
@@ -1104,6 +1378,59 @@ export default function TrackSimulation({
               />
             </div>
             <span className="track-sim__cockpit-pedal-pct mono">{telemetryDynamics.brake}%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Interactive Lap Progress Scrubber (Playhead) ─────────────── */}
+      <div className="track-sim__scrubber-container" role="region" aria-label="Interactive Lap Progress Scrubber">
+        <div className="track-sim__scrubber-header">
+          <div className="scrubber-left">
+            <span className="scrubber-title"><Timer size={11} /> LAP PLAYHEAD:</span>
+            <span className="scrubber-track-dist mono">
+              {(carProgress * 5.891).toFixed(2)} / 5.891 KM ({Math.round(carProgress * 100)}%)
+            </span>
+            <span className="scrubber-corner-badge mono">
+              {telemetryDynamics.cornerName}
+            </span>
+          </div>
+
+          <div className="scrubber-right">
+            {isScrubbing ? (
+              <button
+                type="button"
+                className="scrubber-live-btn scrubber-live-btn--pulsing"
+                onClick={handleLiveSync}
+                title="Resume live continuous race simulation"
+              >
+                <Play size={10} />
+                <span>RESUME LIVE SYNC</span>
+              </button>
+            ) : (
+              <span className="scrubber-status-badge">
+                <span className="live-dot" /> LIVE TRANSMITTING
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Range slider with Sector 1 / 2 / 3 gradient track */}
+        <div className="track-sim__scrubber-bar">
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.002"
+            value={carProgress}
+            onChange={handleScrubberChange}
+            className="track-sim__scrubber-slider"
+            aria-label="Lap progress slider"
+          />
+          <div className="scrubber-sector-ticks">
+            <span className="tick-s1" style={{ left: '0%' }}>S1 (0.00km)</span>
+            <span className="tick-s2" style={{ left: '35%' }}>S2 (2.06km)</span>
+            <span className="tick-s3" style={{ left: '72%' }}>S3 (4.24km)</span>
+            <span className="tick-fin" style={{ right: '0%' }}>FINISH</span>
           </div>
         </div>
       </div>
