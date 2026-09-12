@@ -4,30 +4,33 @@
    ============================================================ */
 
 :root {
-  /* Palette — dark racing telemetry */
-  --bg-base:        #080c10;
-  --bg-surface:     #0d1117;
-  --bg-card:        #111820;
-  --bg-card-hover:  #161f2a;
-  --bg-elevated:    #1a2333;
+  /* Palette — Dark mode: dark blue, light blue, and green */
+  --bg-base:        #060e18;  /* Deep dark navy */
+  --bg-surface:     #0a1728;  /* Dark blue surface */
+  --bg-card:        #0f223a;  /* Rich dark blue card */
+  --bg-card-hover:  #142b49;  /* Hover dark blue */
+  --bg-elevated:    #193559;  /* Elevated dark blue */
 
-  /* Borders */
-  --border:         #1e2a38;
-  --border-subtle:  #162030;
-  --border-bright:  #2a3d52;
+  /* Borders — cool blue tones */
+  --border:         #1d3c66;
+  --border-subtle:  #142b49;
+  --border-bright:  #29548d;
 
-  /* Text */
-  --text-primary:   #e8edf3;
-  --text-secondary: #7a8fa6;
-  --text-muted:     #4a5e72;
-  --text-dim:       #2e3f52;
+  /* Text — cool ice-blue tones */
+  --text-primary:   #eaf2fc;
+  --text-secondary: #92b7dd;
+  --text-muted:     #5b81a7;
+  --text-dim:       #35506e;
 
-  /* Accent — electric cyan (neutral telemetry) */
-  --accent:         #00d4ff;
-  --accent-dim:     rgba(0, 212, 255, 0.12);
-  --accent-glow:    rgba(0, 212, 255, 0.25);
+  /* Accent — Light Blue */
+  --accent:         #38bdf8;
+  --accent-dim:     rgba(56, 189, 248, 0.12);
+  --accent-glow:    rgba(56, 189, 248, 0.3);
+  --accent-text:    #060e18;
+  --accent-hover:   #0ea5e9;
+  --chart-purple:   #818cf8;
 
-  /* Action colors */
+  /* Action & Status colors — featuring high-visibility neon Green */
   --overtake:       #ff4d4d;
   --overtake-dim:   rgba(255, 77, 77, 0.12);
   --overtake-glow:  rgba(255, 77, 77, 0.3);
@@ -38,21 +41,15 @@
   --hold-glow:      rgba(245, 200, 66, 0.3);
   --hold-text:      #f5c842;
 
-  --recover:        #3dd68c;
-  --recover-dim:    rgba(61, 214, 140, 0.12);
-  --recover-glow:   rgba(61, 214, 140, 0.3);
-  --recover-text:   #3dd68c;
+  --recover:        #10e782;  /* Electric neon green */
+  --recover-dim:    rgba(16, 231, 130, 0.14);
+  --recover-glow:   rgba(16, 231, 130, 0.35);
+  --recover-text:   #10e782;
 
-  /* Accent button text and hover */
-  --accent-text:    #080c10;
-  --accent-hover:   #00bce8;
-  --chart-purple:   #c084fc;
-
-  /* Status */
-  --success:        #3dd68c;
+  --success:        #10e782;  /* Vibrant motorsport green */
   --warning:        #f5c842;
   --danger:         #ff4d4d;
-  --info:           #00d4ff;
+  --info:           #38bdf8;  /* Light blue info */
 
   /* Typography */
   --font-sans:  'Inter', system-ui, sans-serif;
@@ -64,70 +61,70 @@
   --radius-lg:  12px;
   --radius-xl:  16px;
 
-  /* Shadows */
-  --shadow-sm:  0 1px 3px rgba(0,0,0,0.4);
-  --shadow-md:  0 4px 16px rgba(0,0,0,0.5);
-  --shadow-lg:  0 8px 32px rgba(0,0,0,0.6);
+  /* Shadows — deep navy ambient */
+  --shadow-sm:  0 1px 3px rgba(3, 9, 16, 0.45);
+  --shadow-md:  0 4px 16px rgba(3, 9, 16, 0.55);
+  --shadow-lg:  0 8px 32px rgba(3, 9, 16, 0.65);
 
   /* Transition */
   --transition: 0.2s ease;
   --transition-slow: 0.4s ease;
 }
 
-/* Light Mode Overrides */
+/* Light Mode Overrides — Warm white, red, and orange */
 [data-theme="light"] {
-  /* Palette — motorsport engineering daylight telemetry */
-  --bg-base:        #f0f4f8;
-  --bg-surface:     #f8fafc;
-  --bg-card:        #ffffff;
-  --bg-card-hover:  #f1f5f9;
+  /* Palette — Warm white & cream base */
+  --bg-base:        #faf5ee;  /* Warm ivory / linen white */
+  --bg-surface:     #f3ede1;  /* Warm soft sand surface */
+  --bg-card:        #ffffff;  /* Pure crisp white card */
+  --bg-card-hover:  #fbf8f2;  /* Warm hover tint */
   --bg-elevated:    #ffffff;
 
-  /* Borders */
-  --border:         #cbd5e1;
-  --border-subtle:  #e2e8f0;
-  --border-bright:  #94a3b8;
+  /* Borders — warm sand / terracotta subtle borders */
+  --border:         #e5dacb;
+  --border-subtle:  #eee5d7;
+  --border-bright:  #d2beaa;
 
-  /* Text */
-  --text-primary:   #0f172a;
-  --text-secondary: #334155;
-  --text-muted:     #64748b;
-  --text-dim:       #94a3b8;
+  /* Text — deep warm espresso & stone */
+  --text-primary:   #201b16;  /* Deep warm charcoal/espresso */
+  --text-secondary: #4d443b;  /* Warm charcoal */
+  --text-muted:     #7d7164;  /* Warm stone */
+  --text-dim:       #a99c8f;
 
-  /* Accent — sky-600 */
-  --accent:         #0284c7;
-  --accent-dim:     rgba(2, 132, 199, 0.08);
-  --accent-glow:    rgba(2, 132, 199, 0.2);
+  /* Accent — Fiery Orange & Red */
+  --accent:         #ea580c;  /* Energetic motorsport racing orange */
+  --accent-dim:     rgba(234, 88, 12, 0.1);
+  --accent-glow:    rgba(234, 88, 12, 0.28);
   --accent-text:    #ffffff;
-  --accent-hover:   #0369a1;
-  --chart-purple:   #7c3aed;
+  --accent-hover:   #c2410c;
+  --chart-purple:   #c026d3;
 
-  /* Action colors with calibrated contrast for white backgrounds */
-  --overtake:       #dc2626;
-  --overtake-dim:   rgba(220, 38, 38, 0.08);
-  --overtake-glow:  rgba(220, 38, 38, 0.2);
+  /* Action & status colors — rich red, vibrant orange, and balanced green */
+  --overtake:       #dc2626;  /* Bold racing red */
+  --overtake-dim:   rgba(220, 38, 38, 0.1);
+  --overtake-glow:  rgba(220, 38, 38, 0.28);
   --overtake-text:  #b91c1c;
 
-  --hold:           #d97706;
-  --hold-dim:       rgba(217, 119, 6, 0.08);
-  --hold-glow:      rgba(217, 119, 6, 0.2);
-  --hold-text:      #b45309;
+  --hold:           #f97316;  /* Vivid orange */
+  --hold-dim:       rgba(249, 115, 22, 0.12);
+  --hold-glow:      rgba(249, 115, 22, 0.28);
+  --hold-text:      #c2410c;
 
-  --recover:        #059669;
-  --recover-dim:    rgba(5, 150, 105, 0.08);
-  --recover-glow:   rgba(5, 150, 105, 0.2);
-  --recover-text:   #047857;
+  --recover:        #16a34a;  /* Clean racing green */
+  --recover-dim:    rgba(22, 163, 74, 0.1);
+  --recover-glow:   rgba(22, 163, 74, 0.25);
+  --recover-text:   #15803d;
 
   /* Status */
-  --success:        #059669;
-  --warning:        #d97706;
-  --danger:         #dc2626;
-  --info:           #0284c7;
+  --success:        #16a34a;
+  --warning:        #f97316;  /* Orange */
+  --danger:         #dc2626;  /* Red */
+  --info:           #ea580c;  /* Orange-red */
 
-  /* Shadows */
-  --shadow-sm:  0 1px 3px rgba(15, 23, 42, 0.08);
-  --shadow-md:  0 4px 14px rgba(15, 23, 42, 0.09);
-  --shadow-lg:  0 8px 28px rgba(15, 23, 42, 0.12);
+  /* Shadows — warm ambient */
+  --shadow-sm:  0 1px 3px rgba(65, 45, 25, 0.07);
+  --shadow-md:  0 4px 14px rgba(65, 45, 25, 0.09);
+  --shadow-lg:  0 8px 28px rgba(65, 45, 25, 0.12);
 }
 
 /* ---- Reset ---- */
