@@ -1117,72 +1117,72 @@ export default function TrackSimulation({
             </div>
           </div>
         )}
+      </div>
 
-        {/* ── Bottom Cockpit Bar: LED Rev Indicator, Throttle & Brake, and Gear (Visible in BOTH Simple & Detailed UI) ── */}
-        <div className="track-sim__cockpit-bar" role="region" aria-label="Cockpit Rev and Pedal Telemetry">
-          {/* Gear Indicator */}
-          <div className="track-sim__cockpit-gear-cluster">
-            <span className="track-sim__cockpit-gear-lbl">GEAR</span>
-            <div className="track-sim__cockpit-gear-display">
-              <span className="track-sim__cockpit-gear-val mono">
-                {isRunning ? telemetryDynamics.gear : 'N'}
-              </span>
-              <div className="track-sim__cockpit-shift-badge">
-                {telemetryDynamics.shiftState === 'UPSHIFT' && <span className="shift-pill shift-pill--up"><ArrowUp size={9} /> UP</span>}
-                {telemetryDynamics.shiftState === 'DOWNSHIFT' && <span className="shift-pill shift-pill--down"><ArrowDown size={9} /> DN</span>}
-                {telemetryDynamics.shiftState === 'HOLD' && <span className="shift-pill">OPT</span>}
-                {telemetryDynamics.shiftState === 'NEUTRAL' && <span className="shift-pill">NEUT</span>}
-              </div>
+      {/* ── Cockpit Bar: LED Rev Indicator, Throttle & Brake, and Gear (Positioned Below Track) ── */}
+      <div className="track-sim__cockpit-bar" role="region" aria-label="Cockpit Rev and Pedal Telemetry">
+        {/* Gear Indicator */}
+        <div className="track-sim__cockpit-gear-cluster">
+          <span className="track-sim__cockpit-gear-lbl">GEAR</span>
+          <div className="track-sim__cockpit-gear-display">
+            <span className="track-sim__cockpit-gear-val mono">
+              {isRunning ? telemetryDynamics.gear : 'N'}
+            </span>
+            <div className="track-sim__cockpit-shift-badge">
+              {telemetryDynamics.shiftState === 'UPSHIFT' && <span className="shift-pill shift-pill--up"><ArrowUp size={9} /> UP</span>}
+              {telemetryDynamics.shiftState === 'DOWNSHIFT' && <span className="shift-pill shift-pill--down"><ArrowDown size={9} /> DN</span>}
+              {telemetryDynamics.shiftState === 'HOLD' && <span className="shift-pill">OPT</span>}
+              {telemetryDynamics.shiftState === 'NEUTRAL' && <span className="shift-pill">NEUT</span>}
             </div>
           </div>
+        </div>
 
-          {/* Center: F1 Steering Wheel LED Rev Indicator + RPM */}
-          <div className="track-sim__cockpit-rev-cluster">
-            <div className="track-sim__cockpit-rev-header">
-              <span className="track-sim__cockpit-rpm-lbl">REV LIGHTS</span>
-              <div className={`track-sim__cockpit-led-strip ${activeLeds === 15 ? 'shift-flash' : ''}`}>
-                {Array.from({ length: 15 }).map((_, i) => {
-                  const isLit = i < activeLeds;
-                  const ledColor = i < 5 ? 'green' : i < 10 ? 'yellow' : i < 13 ? 'red' : 'blue';
-                  return (
-                    <span
-                      key={i}
-                      className={`track-sim__cockpit-led track-sim__cockpit-led--${ledColor} ${isLit ? 'lit' : ''}`}
-                    />
-                  );
-                })}
-              </div>
-              <span className="track-sim__cockpit-rpm-val mono">
-                {isRunning ? telemetryDynamics.rpm.toLocaleString() : '0'} <small>RPM</small>
-              </span>
+        {/* Center: F1 Steering Wheel LED Rev Indicator + RPM */}
+        <div className="track-sim__cockpit-rev-cluster">
+          <div className="track-sim__cockpit-rev-header">
+            <span className="track-sim__cockpit-rpm-lbl">REV LIGHTS</span>
+            <div className={`track-sim__cockpit-led-strip ${activeLeds === 15 ? 'shift-flash' : ''}`}>
+              {Array.from({ length: 15 }).map((_, i) => {
+                const isLit = i < activeLeds;
+                const ledColor = i < 5 ? 'green' : i < 10 ? 'yellow' : i < 13 ? 'red' : 'blue';
+                return (
+                  <span
+                    key={i}
+                    className={`track-sim__cockpit-led track-sim__cockpit-led--${ledColor} ${isLit ? 'lit' : ''}`}
+                  />
+                );
+              })}
             </div>
+            <span className="track-sim__cockpit-rpm-val mono">
+              {isRunning ? telemetryDynamics.rpm.toLocaleString() : '0'} <small>RPM</small>
+            </span>
+          </div>
+        </div>
+
+        {/* Pedal Inputs: Throttle & Brake Horizontal Bars */}
+        <div className="track-sim__cockpit-pedals-cluster">
+          {/* Throttle Input */}
+          <div className="track-sim__cockpit-pedal-row">
+            <span className="track-sim__cockpit-pedal-tag track-sim__cockpit-pedal-tag--thr">THR</span>
+            <div className="track-sim__cockpit-pedal-track">
+              <div
+                className="track-sim__cockpit-pedal-fill track-sim__cockpit-pedal-fill--thr"
+                style={{ width: `${telemetryDynamics.throttle}%` }}
+              />
+            </div>
+            <span className="track-sim__cockpit-pedal-pct mono">{telemetryDynamics.throttle}%</span>
           </div>
 
-          {/* Pedal Inputs: Throttle & Brake Horizontal Bars */}
-          <div className="track-sim__cockpit-pedals-cluster">
-            {/* Throttle Input */}
-            <div className="track-sim__cockpit-pedal-row">
-              <span className="track-sim__cockpit-pedal-tag track-sim__cockpit-pedal-tag--thr">THR</span>
-              <div className="track-sim__cockpit-pedal-track">
-                <div
-                  className="track-sim__cockpit-pedal-fill track-sim__cockpit-pedal-fill--thr"
-                  style={{ width: `${telemetryDynamics.throttle}%` }}
-                />
-              </div>
-              <span className="track-sim__cockpit-pedal-pct mono">{telemetryDynamics.throttle}%</span>
+          {/* Brake Input */}
+          <div className="track-sim__cockpit-pedal-row">
+            <span className="track-sim__cockpit-pedal-tag track-sim__cockpit-pedal-tag--brk">BRK</span>
+            <div className="track-sim__cockpit-pedal-track">
+              <div
+                className="track-sim__cockpit-pedal-fill track-sim__cockpit-pedal-fill--brk"
+                style={{ width: `${telemetryDynamics.brake}%` }}
+              />
             </div>
-
-            {/* Brake Input */}
-            <div className="track-sim__cockpit-pedal-row">
-              <span className="track-sim__cockpit-pedal-tag track-sim__cockpit-pedal-tag--brk">BRK</span>
-              <div className="track-sim__cockpit-pedal-track">
-                <div
-                  className="track-sim__cockpit-pedal-fill track-sim__cockpit-pedal-fill--brk"
-                  style={{ width: `${telemetryDynamics.brake}%` }}
-                />
-              </div>
-              <span className="track-sim__cockpit-pedal-pct mono">{telemetryDynamics.brake}%</span>
-            </div>
+            <span className="track-sim__cockpit-pedal-pct mono">{telemetryDynamics.brake}%</span>
           </div>
         </div>
       </div>
