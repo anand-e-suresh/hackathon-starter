@@ -1,79 +1,120 @@
 /* ============================================================
-   SAZI — AI Motorsport Intelligence
-   Global Design System
+   SAZI — Official Formula 1 Typography & Design System
+   Calibrated directly to formula1.com official theme
    ============================================================ */
 
+/* ── Official Formula 1 Web Fonts ───────────────────────────── */
+@font-face {
+  font-family: 'Formula1';
+  src: url('/fonts/Formula1-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Formula1';
+  src: url('/fonts/Formula1-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Formula1';
+  src: url('/fonts/Formula1-Black.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Formula1';
+  src: url('/fonts/Formula1-Italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Formula1Wide';
+  src: url('/fonts/Formula1-Wide.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  /* ── F1 Authentic Motorsport Typography ────────────────────── */
-  --font-f1:         'Titillium Web', 'Rajdhani', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-display:    'Titillium Web', 'Rajdhani', sans-serif;
-  --font-telemetry:  'Rajdhani', 'Chakra Petch', 'JetBrains Mono', monospace;
-  --font-sans:       'Titillium Web', 'Inter', system-ui, sans-serif;
-  --font-mono:       'Rajdhani', 'JetBrains Mono', ui-monospace, monospace;
+  /* ── Official Formula 1 Typography ─────────────────────────── */
+  --font-f1:         'Formula1', 'Formula1Wide', 'Titillium Web', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display:    'Formula1Wide', 'Formula1', 'Titillium Web', sans-serif;
+  --font-telemetry:  'Formula1', 'Rajdhani', 'Chakra Petch', monospace;
+  --font-sans:       'Formula1', 'Titillium Web', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:       'Formula1', 'Rajdhani', monospace;
 
-  /* ── Dark Mode: F1 Paddock Night GP (Dark Blue, Light Blue & Green) ── */
-  --bg-base:        #050913;  /* Ultra-deep technical navy carbon */
-  --bg-surface:     #091220;  /* Paddock telemetry console surface */
-  --bg-card:        #0e1a2d;  /* Aerospace composite cockpit card */
-  --bg-card-hover:  #14253e;  /* Active hover cockpit blue */
-  --bg-elevated:    #1a2f4e;  /* Elevated panel */
+  /* ── Dark Mode: Official formula1.com Theme ───────────────── */
+  --bg-base:        #15151e;  /* Official formula1.com dark charcoal background */
+  --bg-surface:     #1e1e27;  /* Official formula1.com elevated nav/surface */
+  --bg-card:        #1e1e27;  /* Official formula1.com card containers */
+  --bg-card-hover:  #252533;  /* Active hover slate */
+  --bg-elevated:    #282838;  /* Elevated panel / modal */
 
-  /* Precision telemetry laser borders */
-  --border:         #19365c;
-  --border-subtle:  #10243d;
-  --border-bright:  #27528a;
+  /* formula1.com precision slate borders */
+  --border:         #2e2e38;
+  --border-subtle:  #22222d;
+  --border-bright:  #e10600;  /* Official Formula 1 Red */
 
-  /* Text — cool ice & high-contrast telemetry */
-  --text-primary:   #f0f5fc;
-  --text-secondary: #97bede;
-  --text-muted:     #5e83a7;
-  --text-dim:       #375373;
+  /* Text — formula1.com pure crisp white & silver gray */
+  --text-primary:   #ffffff;  /* Pure white */
+  --text-secondary: #b6b6be;  /* Cool racing silver */
+  --text-muted:     #787885;  /* Subtle ash */
+  --text-dim:       #4e4e5a;  /* Subdued */
 
-  /* F1 Brand & Accents */
-  --f1-red:         #ff1801;  /* Official Formula 1 Brand Red */
-  --f1-red-glow:    rgba(255, 24, 1, 0.4);
-  --accent:         #00e5ff;  /* High-voltage Cyan / Light Blue */
-  --accent-dim:     rgba(0, 229, 255, 0.12);
-  --accent-glow:    rgba(0, 229, 255, 0.35);
-  --accent-text:    #050913;
-  --accent-hover:   #38bdf8;
+  /* Official Formula 1 Red Brand & Accents */
+  --f1-red:         #e10600;  /* Official Formula 1 Brand Red */
+  --f1-red-glow:    rgba(225, 6, 0, 0.45);
+  --accent:         #e10600;  /* Official Formula 1 Red */
+  --accent-dim:     rgba(225, 6, 0, 0.16);
+  --accent-glow:    rgba(225, 6, 0, 0.42);
+  --accent-text:    #ffffff;
+  --accent-hover:   #ff1801;
   --chart-purple:   #818cf8;
 
-  /* Action & Status — High-intensity F1 Action Colors */
-  --overtake:       #ff2222;  /* DRS Attack Red */
-  --overtake-dim:   rgba(255, 34, 34, 0.14);
-  --overtake-glow:  rgba(255, 34, 34, 0.38);
-  --overtake-text:  #ff5252;
+  /* Action & Status — Official F1 Action Colors */
+  --overtake:       #e10600;  /* Official F1 Red */
+  --overtake-dim:   rgba(225, 6, 0, 0.18);
+  --overtake-glow:  rgba(225, 6, 0, 0.45);
+  --overtake-text:  #ff453a;
 
   --hold:           #ffb800;  /* FIA Caution Yellow */
   --hold-dim:       rgba(255, 184, 0, 0.14);
   --hold-glow:      rgba(255, 184, 0, 0.35);
   --hold-text:      #ffb800;
 
-  --recover:        #00ff87;  /* FIA MGU-K Kinetic Recovery Electric Green */
-  --recover-dim:    rgba(0, 255, 135, 0.14);
-  --recover-glow:   rgba(0, 255, 135, 0.38);
-  --recover-text:   #00ff87;
+  --recover:        #00d2be;  /* Mercedes Petronas Teal / MGU-K Green */
+  --recover-dim:    rgba(0, 210, 190, 0.16);
+  --recover-glow:   rgba(0, 210, 190, 0.38);
+  --recover-text:   #00d2be;
 
-  --success:        #00ff87;
+  --success:        #00d2be;
   --warning:        #ffb800;
-  --danger:         #ff2222;
-  --info:           #00e5ff;
+  --danger:         #e10600;
+  --info:           #38bdf8;
 
   /* Radii — Sharp, aggressive aerodynamic cutouts */
-  --radius-sm:      3px;
+  --radius-sm:      4px;
   --radius-md:      6px;
   --radius-lg:      10px;
   --radius-xl:      14px;
 
-  /* Shadows — Deep technical cockpit shadows */
-  --shadow-sm:      0 1px 3px rgba(2, 6, 12, 0.55);
-  --shadow-md:      0 4px 18px rgba(2, 6, 12, 0.65);
-  --shadow-lg:      0 8px 36px rgba(2, 6, 12, 0.8);
+  /* Shadows — formula1.com ambient shadows */
+  --shadow-sm:      0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md:      0 4px 18px rgba(0, 0, 0, 0.55);
+  --shadow-lg:      0 8px 36px rgba(0, 0, 0, 0.75);
 
-  /* Speedline accent across top */
-  --f1-header-speedline: linear-gradient(90deg, #ff1801 0%, #00e5ff 35%, #00ff87 70%, transparent 100%);
-  --f1-carbon-pattern: repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 4px);
+  /* formula1.com speedline accent & official diagonal slash pattern */
+  --f1-header-speedline: linear-gradient(90deg, #e10600 0%, #ff1801 35%, #e10600 70%, transparent 100%);
+  --f1-carbon-pattern: repeating-linear-gradient(125deg, transparent 0px, transparent 18px, rgba(255, 255, 255, 0.04) 18px, rgba(255, 255, 255, 0.04) 28px);
 
   /* Transitions */
   --transition:     0.18s cubic-bezier(0.2, 0.8, 0.2, 1);

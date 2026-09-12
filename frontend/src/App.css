@@ -15,6 +15,7 @@
   justify-content: space-between;
   padding: 12px 24px;
   background: var(--bg-surface);
+  background-image: var(--f1-carbon-pattern);
   border-bottom: 1px solid var(--border);
   border-top: 3px solid transparent;
   border-image: var(--f1-header-speedline) 1;
@@ -23,7 +24,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
 }
 
 .app__brand {
@@ -36,16 +37,16 @@
   width: 38px;
   height: 38px;
   border-radius: var(--radius-sm);
-  background: var(--accent-dim);
-  border: 1px solid var(--accent-glow);
+  background: var(--accent);
+  border: 1px solid var(--accent-hover);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--accent);
+  color: #ffffff;
   flex-shrink: 0;
   transform: skewX(-8deg);
   transition: transform var(--transition), box-shadow var(--transition);
-  box-shadow: 0 0 12px var(--accent-dim);
+  box-shadow: 0 0 16px var(--accent-glow);
 }
 
 .app__logo svg {
@@ -54,15 +55,15 @@
 
 .app__logo:hover {
   transform: skewX(-8deg) scale(1.05);
-  box-shadow: 0 0 16px var(--accent-glow);
+  box-shadow: 0 0 20px var(--accent-glow);
 }
 
 .app__title {
-  font-family: var(--font-f1);
-  font-style: italic;
-  font-size: 24px;
-  font-weight: 900;
-  letter-spacing: 0.14em;
+  font-family: var(--font-display);
+  font-style: normal;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   color: var(--text-primary);
   line-height: 1;
   margin: 0;
@@ -71,13 +72,13 @@
 
 .app__subtitle {
   font-family: var(--font-f1);
-  font-style: italic;
+  font-style: normal;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-muted);
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 .app__header-center { flex: 1; display: flex; justify-content: center; }
@@ -203,15 +204,15 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px;
-  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+  border-radius: 14px;
   font-family: var(--font-f1);
-  font-style: italic;
+  font-style: normal;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.08em;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   border: 1px solid transparent;
   cursor: pointer;
   transition: all var(--transition);
@@ -220,14 +221,14 @@
 
 .ui-mode-btn:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .ui-mode-btn--active {
-  background: var(--bg-card);
-  color: var(--accent);
-  border-color: var(--border-bright);
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent-hover);
+  box-shadow: 0 2px 10px var(--accent-glow);
 }
 
 @media (max-width: 900px) {
@@ -252,9 +253,9 @@
   align-items: center;
   gap: 6px;
   font-family: var(--font-f1);
-  font-style: italic;
+  font-style: normal;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 8px 18px;
@@ -273,12 +274,12 @@
 
 .ctrl-btn--primary {
   background: var(--accent);
-  color: var(--accent-text, var(--bg-base));
+  color: #ffffff;
   border-color: var(--accent);
 }
 .ctrl-btn--primary:hover:not(:disabled) {
-  background: var(--accent-hover, #00bce8);
-  box-shadow: 0 0 16px var(--accent-glow);
+  background: var(--accent-hover, #ff1801);
+  box-shadow: 0 0 18px var(--accent-glow);
 }
 
 .ctrl-btn--secondary {
