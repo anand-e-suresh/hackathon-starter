@@ -25,6 +25,12 @@ export interface RaceState {
   energy_deployed_mj: number;
   deployment_budget_mj: number;
   timestamp: number;
+  // Optional telemetry extensions (auto-calculated when not provided by backend)
+  tyre_deg_pct?: number;
+  battery_soc_pct?: number;
+  efficiency_pct?: number;
+  discharge_rate_kw?: number;
+  recharge_rate_kw?: number;
 }
 
 export interface PredictResponse {

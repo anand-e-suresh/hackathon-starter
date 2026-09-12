@@ -10,7 +10,7 @@
  * - F1 TV Broadcast Onboard Telemetry Halo Graphic floating on circuit canvas
  */
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { Zap, Eye, Flag, ChevronDown, ChevronUp, Gauge, Thermometer, Wind, ArrowUp, ArrowDown, Timer } from 'lucide-react';
+import { Zap, Eye, Flag, ChevronDown, ChevronUp, Gauge, Wind, ArrowUp, ArrowDown, Timer, BatteryMedium, Disc, Cpu, RefreshCw } from 'lucide-react';
 import type { RaceState, PredictResponse } from '../api/client';
 import './TrackSimulation.css';
 
@@ -213,6 +213,44 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
   const rpmRatio = Math.max(0, Math.min(1, (telemetryDynamics.rpm - 8000) / 5000));
   const activeLeds = Math.round(rpmRatio * 15);
 
+  // ── Advanced Telemetry Derivations ──────────────────────────────────────────
+  // 1. Tyre Degradation (Silverstone front-right loaded)
+  const tyreDeg = raceState?.tyre_deg_pct ?? Math.min(88, parseFloat((((currentLap - 1) + carProgress) * 0.42 + 5.8).toFixed(1)));
+  const flDeg = Math.min(95, parseFloat((tyreDeg * 0.96).toFixed(1)));
+  const frDeg = Math.min(98, parseFloat((tyreDeg * 1.18).toFixed(1))); // Silverstone high-load front right
+  const rlDeg = Math.min(90, parseFloat((tyreDeg * 0.88).toFixed(1)));
+  const rrDeg = Math.min(92, parseFloat((tyreDeg * 0.94).toFixed(1)));
+  const gripRemaining = Math.max(68, parseFloat((100 - tyreDeg * 0.52).toFixed(1)));
+
+  // 2. Battery Percent Left & Usable Energy
+  const batteryPercentLeft = raceState?.battery_soc_pct ?? Math.round(ers);
+  const usableBatteryMj = ((batteryPercentLeft / 100) * 4.0).toFixed(2);
+  const boostTimeRemainingS = ((batteryPercentLeft / 100 * 4000) / 120).toFixed(1);
+
+  // 3. Discharge & Recharge Rates
+  const isHighThrottle = telemetryDynamics.throttle > 80;
+  const isBraking = telemetryDynamics.brake > 40;
+
+  const dischargeRateKw = action === 'OVERTAKE' || isHighThrottle
+    ? (raceState?.discharge_rate_kw ?? 120.0)
+    : isBraking
+    ? 0.0
+    : 38.5;
+
+  const rechargeRateKw = action === 'RECOVER' || isBraking
+    ? (raceState?.recharge_rate_kw ?? 120.0)
+    : isHighThrottle
+    ? 0.0
+    : 32.0;
+
+  const netPowerFlowKw = rechargeRateKw - dischargeRateKw; // Negative = Discharging, Positive = Recharging
+
+  // 4. Efficiency
+  const ersEfficiency = raceState?.efficiency_pct ?? 94.2;
+  const iceThermalEfficiency = 51.8;
+  const aiDeploymentOptimality = 96.5;
+  const kineticHarvestEfficiency = 89.4;
+
   return (
     <div className={`track-sim track-sim--${action.toLowerCase()}`} role="region" aria-label="Live 2D Track Simulation">
       {/* ── Top Header / HUD Bar ────────────────────────────────────────── */}
@@ -274,15 +312,40 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
           <div className="track-sim__hud-item">
             <span className="track-sim__hud-label">DRS WING</span>
             <span className={`track-sim__hud-val track-sim__drs ${isDrsActive ? 'track-sim__drs--open' : isDrsZone ? 'track-sim__drs--avail' : ''}`}>
-              {isDrsActive ? 'OPEN (+12.8kph)' : isDrsZone ? 'ARMED (<1.0s)' : 'CLOSED'}
+              {isDrsActive ? 'OPEN (+13.4kph)' : isDrsZone ? 'ARMED (<1.0s)' : 'CLOSED'}
             </span>
           </div>
 
-          {/* ERS Mention in Header */}
+          {/* Battery % Left */}
           <div className="track-sim__hud-item">
-            <span className="track-sim__hud-label">ERS SYSTEM</span>
+            <span className="track-sim__hud-label"><BatteryMedium size={9} /> BATT LEFT</span>
             <span className="track-sim__hud-val track-sim__hud-ers mono">
-              {ers.toFixed(1)}% <small>({action === 'OVERTAKE' ? '-120kW' : action === 'RECOVER' ? '+85kW' : '45kW'})</small>
+              {batteryPercentLeft}% <small>({usableBatteryMj}MJ)</small>
+            </span>
+          </div>
+
+          {/* Rate of Discharge & Recharge Flow */}
+          <div className="track-sim__hud-item">
+            <span className="track-sim__hud-label"><RefreshCw size={9} /> POWER FLOW</span>
+            <span className={`track-sim__hud-val mono ${netPowerFlowKw < 0 ? 'track-sim__hud-flow--disch' : netPowerFlowKw > 0 ? 'track-sim__hud-flow--rech' : 'track-sim__hud-flow--bal'}`}>
+              {netPowerFlowKw < 0 ? `-${Math.abs(netPowerFlowKw).toFixed(0)} kW` : netPowerFlowKw > 0 ? `+${netPowerFlowKw.toFixed(0)} kW` : '0 kW'}
+              <small>({netPowerFlowKw < 0 ? 'DISCH' : netPowerFlowKw > 0 ? 'RECH' : 'BAL'})</small>
+            </span>
+          </div>
+
+          {/* Tyre Degradation in Header */}
+          <div className="track-sim__hud-item">
+            <span className="track-sim__hud-label"><Disc size={9} /> TYRE DEG</span>
+            <span className="track-sim__hud-val mono" style={{ color: tyreDeg > 60 ? '#ef4444' : tyreDeg > 30 ? '#f59e0b' : '#10e782' }}>
+              {tyreDeg.toFixed(1)}% <small>(C3)</small>
+            </span>
+          </div>
+
+          {/* Efficiency in Header */}
+          <div className="track-sim__hud-item">
+            <span className="track-sim__hud-label"><Cpu size={9} /> EFFICIENCY</span>
+            <span className="track-sim__hud-val mono" style={{ color: 'var(--accent)' }}>
+              {ersEfficiency.toFixed(1)}%
             </span>
           </div>
 
@@ -792,6 +855,30 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
               />
             ))}
           </div>
+
+          {/* Mini Telemetry Strip: Battery %, Net Power Flow kW, Tyre Deg %, and Efficiency */}
+          <div className="track-sim__onboard-strip">
+            <div className="track-sim__onboard-pill">
+              <span>BATT</span>
+              <strong className="mono">{batteryPercentLeft}% ({usableBatteryMj}MJ)</strong>
+            </div>
+            <div className="track-sim__onboard-pill">
+              <span>FLOW</span>
+              <strong className={`mono ${netPowerFlowKw < 0 ? 'track-sim__hud-flow--disch' : netPowerFlowKw > 0 ? 'track-sim__hud-flow--rech' : 'track-sim__hud-flow--bal'}`}>
+                {netPowerFlowKw < 0 ? `-${Math.abs(netPowerFlowKw).toFixed(0)}kW` : netPowerFlowKw > 0 ? `+${netPowerFlowKw.toFixed(0)}kW` : '0kW'}
+              </strong>
+            </div>
+            <div className="track-sim__onboard-pill">
+              <span>TYRE</span>
+              <strong className="mono" style={{ color: tyreDeg > 60 ? '#ef4444' : tyreDeg > 30 ? '#f59e0b' : '#10e782' }}>
+                {tyreDeg.toFixed(1)}%
+              </strong>
+            </div>
+            <div className="track-sim__onboard-pill">
+              <span>EFF</span>
+              <strong className="mono" style={{ color: 'var(--accent)' }}>{ersEfficiency.toFixed(1)}%</strong>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -892,107 +979,259 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             </div>
           </div>
 
-          {/* Card 3: ERS (Energy Recovery System) Hybrid Powertrain */}
+          {/* Card 3: Battery % Left & Usable Energy */}
           <div className="track-sim__drawer-card">
             <div className="track-sim__drawer-header">
-              <Zap size={13} />
-              <span>ERS (HYBRID ENERGY RECOVERY SYSTEM)</span>
+              <BatteryMedium size={13} />
+              <span>BATTERY SOC & USABLE RESERVE</span>
+            </div>
+            <div className="track-sim__drawer-body">
+              {/* Large Battery Gauge */}
+              <div className="track-sim__battery-meter">
+                <div className="track-sim__battery-meter-header">
+                  <span>STATE OF CHARGE (SOC):</span>
+                  <span className="track-sim__battery-soc-val">{batteryPercentLeft}%</span>
+                </div>
+                <div className="track-sim__battery-bar-large">
+                  <div
+                    className="track-sim__battery-fill-large"
+                    style={{ width: `${Math.min(100, Math.max(0, batteryPercentLeft))}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>USABLE CAPACITY REMAINING:</span>
+                <strong className="mono" style={{ color: 'var(--accent)' }}>
+                  {usableBatteryMj} MJ / 4.00 MJ USABLE
+                </strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>CONTINUOUS 120kW BOOST:</span>
+                <strong className="mono">{boostTimeRemainingS}s FULL-POWER TIME LEFT</strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>ENERGY DEPLOYED THIS LAP:</span>
+                <strong className="mono">
+                  {(raceState?.energy_deployed_mj ?? 1.85).toFixed(2)} MJ / 4.00 MJ (FIA ALLOWANCE)
+                </strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>CELL OPERATING TEMP:</span>
+                <strong className="mono" style={{ color: '#10e782' }}>48.2°C (OPTIMUM 45–55°C)</strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>SAFETY RESERVE BUFFER:</span>
+                <strong className="mono">10.0% FIA CRITICAL SHUTOFF BUFFER</strong>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 4: Rate of Discharge & Recharge (Live Power Flow) */}
+          <div className="track-sim__drawer-card">
+            <div className="track-sim__drawer-header">
+              <RefreshCw size={13} />
+              <span>RATE OF DISCHARGE & RECHARGE</span>
+            </div>
+            <div className="track-sim__drawer-body">
+              {/* Discharge Rate Row */}
+              <div className="track-sim__flow-row">
+                <span className="track-sim__flow-label">DISCHARGE:</span>
+                <div className="track-sim__flow-bar">
+                  <div
+                    className="track-sim__flow-fill track-sim__flow-fill--disch"
+                    style={{ width: `${Math.min(100, (dischargeRateKw / 120) * 100)}%` }}
+                  />
+                </div>
+                <span className="track-sim__flow-val track-sim__flow-val--disch mono">
+                  {dischargeRateKw.toFixed(1)} kW
+                </span>
+              </div>
+
+              {/* Recharge Rate Row */}
+              <div className="track-sim__flow-row">
+                <span className="track-sim__flow-label">RECHARGE:</span>
+                <div className="track-sim__flow-bar">
+                  <div
+                    className="track-sim__flow-fill track-sim__flow-fill--rech"
+                    style={{ width: `${Math.min(100, (rechargeRateKw / 120) * 100)}%` }}
+                  />
+                </div>
+                <span className="track-sim__flow-val track-sim__flow-val--rech mono">
+                  +{rechargeRateKw.toFixed(1)} kW
+                </span>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>NET POWERTRAIN FLOW:</span>
+                <strong className="mono" style={{ color: netPowerFlowKw < 0 ? '#f97316' : netPowerFlowKw > 0 ? '#10e782' : 'var(--text-muted)' }}>
+                  {netPowerFlowKw < 0 ? `-${Math.abs(netPowerFlowKw).toFixed(1)} kW (HIGH DISCHARGE)` : netPowerFlowKw > 0 ? `+${netPowerFlowKw.toFixed(1)} kW (HIGH RECHARGE)` : '0.0 kW (BALANCED CRUISE)'}
+                </strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>KINETIC BRAKING REGEN:</span>
+                <strong className="mono">+{isBraking ? '85.0' : '0.0'} kW (MGU-K REAR AXLE)</strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>THERMAL TURBO HARVEST:</span>
+                <strong className="mono">+{rechargeRateKw > 0 ? '35.0' : '0.0'} kW (MGU-H CONTINUOUS)</strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>FLOW RATE ENERGY DUTY:</span>
+                <strong className="mono">
+                  {dischargeRateKw > 50 ? '-2.40 MJ/MIN DISCHARGE RATE' : rechargeRateKw > 50 ? '+2.40 MJ/MIN HARVEST RATE' : '0.70 MJ/MIN CRUISE FLOW'}
+                </strong>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 5: Powertrain & Strategy Efficiency */}
+          <div className="track-sim__drawer-card">
+            <div className="track-sim__drawer-header">
+              <Cpu size={13} />
+              <span>SYSTEM & THERMAL EFFICIENCY</span>
             </div>
             <div className="track-sim__drawer-body">
               <div className="track-sim__stat-pair">
-                <span>BATTERY STATE OF CHARGE:</span>
-                <strong className="mono">{ers.toFixed(1)}% (2.62 MJ / 4.00 MJ CAPACITY)</strong>
-              </div>
-
-              <div className="track-sim__stat-pair">
-                <span>MGU-K DEPLOYMENT FLOW:</span>
-                <strong className="mono" style={{ color: action === 'OVERTAKE' ? 'var(--overtake)' : action === 'RECOVER' ? 'var(--recover)' : 'var(--accent)' }}>
-                  {action === 'OVERTAKE'
-                    ? '-120 kW (160 BHP) FULL ATTACK BOOST'
-                    : action === 'RECOVER'
-                    ? '+85 kW KINETIC HARVESTING UNDER BRAKING'
-                    : '45 kW STRATEGIC CRUISE DEPLOYMENT'}
+                <span>MGU-K ROUND-TRIP EFFICIENCY:</span>
+                <strong className="mono" style={{ color: 'var(--accent)' }}>
+                  {ersEfficiency.toFixed(1)}% (BATTERY ⟷ MOTOR)
                 </strong>
               </div>
 
               <div className="track-sim__stat-pair">
-                <span>ENERGY USED THIS LAP:</span>
-                <strong className="mono">
-                  {(raceState?.energy_deployed_mj ?? 1.85).toFixed(2)} MJ / {(raceState?.deployment_budget_mj ?? 4.0).toFixed(1)} MJ (FIA ALLOWANCE)
+                <span>ICE V6 TURBO THERMAL EFFICIENCY:</span>
+                <strong className="mono" style={{ color: '#10e782' }}>
+                  {iceThermalEfficiency}% (BENCHMARK &gt;50%)
                 </strong>
               </div>
 
               <div className="track-sim__stat-pair">
-                <span>MGU-H TURBO RECOVERY:</span>
-                <strong className="mono">+35 kW CONTINUOUS HEAT HARVESTING</strong>
+                <span>AI STRATEGY OPTIMALITY SCORE:</span>
+                <strong className="mono" style={{ color: '#fbbf24' }}>
+                  {aiDeploymentOptimality}% (HAMILTON TRACE)
+                </strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>KINETIC RECOVERY EFFICIENCY:</span>
+                <strong className="mono">{kineticHarvestEfficiency}% AXLE CAPTURE</strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>SPECIFIC ENERGY CONSUMPTION:</span>
+                <strong className="mono">0.82 MJ / KM (TARGET: 0.85)</strong>
               </div>
 
               <div className="track-sim__stat-pair">
                 <span>FIA RULE COMPLIANCE:</span>
                 <strong className="mono" style={{ color: 'var(--success)' }}>
-                  ARTICLE 5.2.2 ENERGY REGULATION PASS
+                  ARTICLE 5.2.2 ENERGY PASS
                 </strong>
               </div>
             </div>
           </div>
 
-          {/* Card 4: Tires, G-Force & Thermal Telemetry */}
+          {/* Card 6: Tyre Degradation & 4-Corner Wear */}
           <div className="track-sim__drawer-card">
             <div className="track-sim__drawer-header">
-              <Thermometer size={13} />
-              <span>TIRES, G-FORCE & THERMALS</span>
+              <Disc size={13} />
+              <span>TYRE DEGRADATION & WEAR</span>
             </div>
             <div className="track-sim__drawer-body">
               {/* Compound spec */}
               <div className="track-sim__stat-pair">
-                <span>SPECIFICATION:</span>
+                <span>COMPOUND:</span>
                 <strong className="mono" style={{ color: '#fbbf24' }}>PIRELLI P-ZERO C3 MEDIUM (YELLOW)</strong>
               </div>
 
-              {/* 4 Corner Tires */}
-              <div className="track-sim__tires-grid">
-                <div className="track-sim__tire-cell">
-                  <span className="track-sim__tire-pos">FL</span>
-                  <span className="track-sim__tire-temp">102°C</span>
-                  <span className="track-sim__tire-psi">23.5 PSI</span>
+              {/* 4 Corner Degradation Meters */}
+              <div className="track-sim__tyre-deg-grid">
+                <div className="track-sim__tyre-deg-item">
+                  <div className="track-sim__tyre-deg-header">
+                    <span className="track-sim__tyre-deg-pos">FL (FRONT LEFT)</span>
+                    <span className="track-sim__tyre-deg-pct mono">{flDeg}%</span>
+                  </div>
+                  <div className="track-sim__tyre-deg-bar">
+                    <div
+                      className={`track-sim__tyre-deg-fill ${flDeg > 60 ? 'track-sim__tyre-deg-fill--worn' : flDeg > 30 ? 'track-sim__tyre-deg-fill--medium' : 'track-sim__tyre-deg-fill--fresh'}`}
+                      style={{ width: `${flDeg}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="track-sim__tire-cell">
-                  <span className="track-sim__tire-pos">FR</span>
-                  <span className="track-sim__tire-temp">105°C</span>
-                  <span className="track-sim__tire-psi">23.8 PSI</span>
+
+                <div className="track-sim__tyre-deg-item">
+                  <div className="track-sim__tyre-deg-header">
+                    <span className="track-sim__tyre-deg-pos">FR (FRONT RIGHT)</span>
+                    <span className="track-sim__tyre-deg-pct mono" style={{ color: '#f59e0b' }}>{frDeg}%</span>
+                  </div>
+                  <div className="track-sim__tyre-deg-bar">
+                    <div
+                      className={`track-sim__tyre-deg-fill ${frDeg > 60 ? 'track-sim__tyre-deg-fill--worn' : frDeg > 30 ? 'track-sim__tyre-deg-fill--medium' : 'track-sim__tyre-deg-fill--fresh'}`}
+                      style={{ width: `${frDeg}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="track-sim__tire-cell">
-                  <span className="track-sim__tire-pos">RL</span>
-                  <span className="track-sim__tire-temp">99°C</span>
-                  <span className="track-sim__tire-psi">21.0 PSI</span>
+
+                <div className="track-sim__tyre-deg-item">
+                  <div className="track-sim__tyre-deg-header">
+                    <span className="track-sim__tyre-deg-pos">RL (REAR LEFT)</span>
+                    <span className="track-sim__tyre-deg-pct mono">{rlDeg}%</span>
+                  </div>
+                  <div className="track-sim__tyre-deg-bar">
+                    <div
+                      className={`track-sim__tyre-deg-fill ${rlDeg > 60 ? 'track-sim__tyre-deg-fill--worn' : rlDeg > 30 ? 'track-sim__tyre-deg-fill--medium' : 'track-sim__tyre-deg-fill--fresh'}`}
+                      style={{ width: `${rlDeg}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="track-sim__tire-cell">
-                  <span className="track-sim__tire-pos">RR</span>
-                  <span className="track-sim__tire-temp">101°C</span>
-                  <span className="track-sim__tire-psi">21.2 PSI</span>
+
+                <div className="track-sim__tyre-deg-item">
+                  <div className="track-sim__tyre-deg-header">
+                    <span className="track-sim__tyre-deg-pos">RR (REAR RIGHT)</span>
+                    <span className="track-sim__tyre-deg-pct mono">{rrDeg}%</span>
+                  </div>
+                  <div className="track-sim__tyre-deg-bar">
+                    <div
+                      className={`track-sim__tyre-deg-fill ${rrDeg > 60 ? 'track-sim__tyre-deg-fill--worn' : rrDeg > 30 ? 'track-sim__tyre-deg-fill--medium' : 'track-sim__tyre-deg-fill--fresh'}`}
+                      style={{ width: `${rrDeg}%` }}
+                    />
+                  </div>
                 </div>
               </div>
 
               <div className="track-sim__stat-pair">
-                <span>LATERAL CORNERING G:</span>
-                <strong className="mono">{telemetryDynamics.latG.toFixed(1)} G (PEAK 5.2G COPSE)</strong>
+                <span>STINT DEGRADATION RATE:</span>
+                <strong className="mono">+0.42% WEAR PER LAP</strong>
               </div>
 
               <div className="track-sim__stat-pair">
-                <span>LONGITUDINAL G:</span>
-                <strong className="mono">{telemetryDynamics.lonG > 0 ? `+${telemetryDynamics.lonG.toFixed(1)}` : telemetryDynamics.lonG.toFixed(1)} G (DECEL -4.8G)</strong>
-              </div>
-
-              <div className="track-sim__stat-pair">
-                <span>CARBON BRAKE DISCS:</span>
-                <strong className="mono" style={{ color: telemetryDynamics.brakeTemp > 800 ? '#ef4444' : '#f59e0b' }}>
-                  {telemetryDynamics.brakeTemp}°C (VALE/BROOKLANDS)
+                <span>MECHANICAL GRIP REMAINING:</span>
+                <strong className="mono" style={{ color: gripRemaining > 85 ? '#10e782' : '#f59e0b' }}>
+                  {gripRemaining.toFixed(1)}% (-{(100 - gripRemaining).toFixed(1)}% DROP)
                 </strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>STINT PROGRESSION:</span>
+                <strong className="mono">LAP {currentLap} / 26 TARGET STINT</strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>RECOMMENDED PIT WINDOW:</span>
+                <strong className="mono" style={{ color: 'var(--accent)' }}>LAPS 22 – 26 (BOX FOR HARD C2)</strong>
               </div>
             </div>
           </div>
 
-          {/* Card 5: Silverstone Grand Prix Circuit Benchmarks & Weather */}
+          {/* Card 7: Silverstone Grand Prix Circuit Benchmarks & Weather */}
           <div className="track-sim__drawer-card">
             <div className="track-sim__drawer-header">
               <Timer size={13} />

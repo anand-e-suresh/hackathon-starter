@@ -56,6 +56,14 @@ export function generateRaceState(): RaceState {
   _speed = clamp(_speed + rand(-8, 8), 240, 335);
   _energyDeployed = clamp(_energyDeployed + rand(0, 0.08), 0, BUDGET_MJ);
 
+  const isHighThrottle = _speed > 280;
+  const isBraking = _speed < 245;
+
+  const dischargeKw = isHighThrottle ? 120.0 : isBraking ? 0.0 : 42.5;
+  const rechargeKw = isBraking ? 120.0 : isHighThrottle ? 0.0 : 35.0;
+  const tyreDeg = clamp(parseFloat(((_lap * 0.42) + 5.8).toFixed(1)), 5.0, 95.0);
+  const efficiency = parseFloat((94.2 + rand(-0.4, 0.4)).toFixed(1));
+
   return {
     lap: _lap,
     total_laps: TOTAL_LAPS,
@@ -67,6 +75,11 @@ export function generateRaceState(): RaceState {
     energy_deployed_mj: parseFloat(_energyDeployed.toFixed(2)),
     deployment_budget_mj: BUDGET_MJ,
     timestamp: Date.now(),
+    tyre_deg_pct: tyreDeg,
+    battery_soc_pct: Math.round(_ers),
+    efficiency_pct: efficiency,
+    discharge_rate_kw: dischargeKw,
+    recharge_rate_kw: rechargeKw,
   };
 }
 

@@ -852,6 +852,186 @@
   color: var(--text-secondary);
 }
 
+/* ── Battery SoC Large Meter ─────────────────────────────────── */
+.track-sim__battery-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+
+.track-sim__battery-meter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+
+.track-sim__battery-soc-val {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 900;
+  color: #10e782;
+}
+
+.track-sim__battery-bar-large {
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+}
+
+.track-sim__battery-fill-large {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #10e782, #38bdf8);
+  box-shadow: 0 0 10px rgba(16, 231, 130, 0.4);
+  transition: width 0.3s ease;
+}
+
+/* ── Live Energy Flow (Discharge & Recharge) ─────────────────── */
+.track-sim__flow-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.track-sim__flow-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.track-sim__flow-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--text-muted);
+  width: 78px;
+}
+
+.track-sim__flow-bar {
+  flex: 1;
+  height: 7px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.track-sim__flow-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.15s ease;
+}
+
+.track-sim__flow-fill--disch {
+  background: linear-gradient(90deg, #f97316, #ef4444);
+  box-shadow: 0 0 8px rgba(249, 115, 22, 0.5);
+}
+
+.track-sim__flow-fill--rech {
+  background: linear-gradient(90deg, #10e782, #06b6d4);
+  box-shadow: 0 0 8px rgba(16, 231, 130, 0.5);
+}
+
+.track-sim__flow-val {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  width: 60px;
+  text-align: right;
+}
+
+.track-sim__flow-val--disch { color: #f97316; }
+.track-sim__flow-val--rech  { color: #10e782; }
+
+/* ── 4-Corner Tyre Degradation ───────────────────────────────── */
+.track-sim__tyre-deg-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.track-sim__tyre-deg-item {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.track-sim__tyre-deg-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+}
+
+.track-sim__tyre-deg-pos {
+  color: var(--accent);
+}
+
+.track-sim__tyre-deg-pct {
+  font-weight: 800;
+}
+
+.track-sim__tyre-deg-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.track-sim__tyre-deg-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.track-sim__tyre-deg-fill--fresh  { background: #10e782; }
+.track-sim__tyre-deg-fill--medium { background: #f59e0b; }
+.track-sim__tyre-deg-fill--worn   { background: #ef4444; }
+
+/* ── Floating Onboard HUD Telemetry Strip ────────────────────── */
+.track-sim__onboard-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 5px;
+  margin-top: 3px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.track-sim__onboard-pill {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.track-sim__onboard-pill strong {
+  color: var(--text-primary);
+}
+
+.track-sim__hud-flow--disch { color: #f97316; }
+.track-sim__hud-flow--rech  { color: #10e782; }
+.track-sim__hud-flow--bal   { color: var(--text-muted); }
+
 /* ── Responsive adjustments ─────────────────────────────────── */
 @media (max-width: 1100px) {
   .track-sim__telemetry-drawer {

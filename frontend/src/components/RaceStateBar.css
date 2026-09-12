@@ -127,6 +127,35 @@
 .warning { color: var(--warning); }
 .danger  { color: var(--danger); }
 
+/* Tyre degradation bar */
+.rsb__deg-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rsb__deg-bar {
+  width: 54px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.rsb__deg-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.rsb__deg-fill--low { background: var(--success); }
+.rsb__deg-fill--medium { background: var(--warning); }
+.rsb__deg-fill--high { background: var(--danger); }
+
+.rsb__flow--discharge { color: #f97316; font-weight: 700; }
+.rsb__flow--recharge { color: var(--success); font-weight: 700; }
+.rsb__flow--balanced { color: var(--text-muted); font-weight: 600; }
+
 /* Position change */
 .rsb__pos { position: relative; }
 .rsb__pos-icon { margin-left: 4px; }

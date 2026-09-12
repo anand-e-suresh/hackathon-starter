@@ -3,7 +3,7 @@
  * Polls /race-state every second while simulation is running.
  */
 import { useEffect, useRef } from 'react';
-import { Zap, Timer, Gauge, ChevronUp, ChevronDown, Activity } from 'lucide-react';
+import { Zap, Timer, Gauge, ChevronUp, ChevronDown, Activity, BatteryMedium, Disc, Cpu } from 'lucide-react';
 import type { RaceState } from '../api/client';
 import './RaceStateBar.css';
 
@@ -29,6 +29,22 @@ export default function RaceStateBar({ state, isRunning }: Props) {
     !state ? '' : state.gap_ahead_s < 0.5 ? 'danger' : state.gap_ahead_s < 1.0 ? 'warning' : '';
 
   const progress = state ? (state.lap / state.total_laps) * 100 : 0;
+
+  // Battery, Tyre degradation, Flow, and Efficiency metrics
+  const batterySoc = state ? (state.battery_soc_pct ?? state.ers_pct) : 65;
+  const usableBatteryMj = ((batterySoc / 100) * 4.0).toFixed(2);
+
+  const tyreDeg = state
+    ? (state.tyre_deg_pct ?? Math.min(95, parseFloat(((state.lap * 0.42) + 5.8).toFixed(1))))
+    : 14.8;
+  const degClass = tyreDeg > 65 ? 'rsb__deg-fill--high' : tyreDeg > 35 ? 'rsb__deg-fill--medium' : 'rsb__deg-fill--low';
+
+  const dischargeKw = state?.discharge_rate_kw ?? (state && state.speed_kph > 280 ? 120.0 : state && state.speed_kph > 240 ? 42.5 : 0.0);
+  const rechargeKw = state?.recharge_rate_kw ?? (state && state.speed_kph < 245 ? 120.0 : state && state.speed_kph < 280 ? 35.0 : 0.0);
+  const netFlowKw = rechargeKw - dischargeKw;
+  const flowClass = netFlowKw < 0 ? 'rsb__flow--discharge' : netFlowKw > 0 ? 'rsb__flow--recharge' : 'rsb__flow--balanced';
+
+  const efficiency = state ? (state.efficiency_pct ?? 94.2) : 94.2;
 
   if (!state) {
     return (
@@ -85,22 +101,67 @@ export default function RaceStateBar({ state, isRunning }: Props) {
 
         <div className="rsb__divider" />
 
-        {/* ERS */}
+        {/* BATTERY LEFT / ERS */}
         <div className="rsb__metric">
           <span className="rsb__label">
-            <Zap size={12} /> ERS
+            <BatteryMedium size={12} /> BATT LEFT
           </span>
           <div className="rsb__ers-group">
             <span className={`rsb__value rsb__value--large rsb__ers rsb__ers--${ersClass}`}>
-              {state.ers_pct}%
+              {batterySoc}% <small className="rsb__unit">{usableBatteryMj}MJ</small>
             </span>
             <div className="rsb__ers-bar">
               <div
                 className={`rsb__ers-fill rsb__ers-fill--${ersClass}`}
-                style={{ width: `${state.ers_pct}%` }}
+                style={{ width: `${batterySoc}%` }}
               />
             </div>
           </div>
+        </div>
+
+        <div className="rsb__divider" />
+
+        {/* POWER FLOW: DISCHARGE / RECHARGE */}
+        <div className="rsb__metric">
+          <span className="rsb__label">
+            <Zap size={12} /> POWER FLOW
+          </span>
+          <span className={`rsb__value rsb__value--large ${flowClass}`}>
+            {netFlowKw < 0 ? `-${Math.abs(netFlowKw).toFixed(0)} kW` : netFlowKw > 0 ? `+${netFlowKw.toFixed(0)} kW` : '0 kW'}
+            <small className="rsb__unit">{netFlowKw < 0 ? 'DISCH' : netFlowKw > 0 ? 'RECH' : 'BAL'}</small>
+          </span>
+        </div>
+
+        <div className="rsb__divider" />
+
+        {/* TYRE DEGRADATION */}
+        <div className="rsb__metric">
+          <span className="rsb__label">
+            <Disc size={12} /> TYRE DEG
+          </span>
+          <div className="rsb__deg-group">
+            <span className="rsb__value rsb__value--large">
+              {tyreDeg.toFixed(1)}% <small className="rsb__unit">C3</small>
+            </span>
+            <div className="rsb__deg-bar">
+              <div
+                className={`rsb__deg-fill ${degClass}`}
+                style={{ width: `${Math.min(100, tyreDeg)}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="rsb__divider" />
+
+        {/* EFFICIENCY */}
+        <div className="rsb__metric">
+          <span className="rsb__label">
+            <Cpu size={12} /> EFFICIENCY
+          </span>
+          <span className="rsb__value rsb__value--large" style={{ color: 'var(--accent)' }}>
+            {efficiency.toFixed(1)}%
+          </span>
         </div>
 
         <div className="rsb__divider" />
