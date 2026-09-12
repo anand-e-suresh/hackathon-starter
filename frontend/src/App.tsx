@@ -6,7 +6,7 @@
  * While backend is not connected, mock data is used (clearly labeled).
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Activity, Cpu, GitCompare, AlertCircle, Info, Sun, Moon, Tv, LayoutTemplate, SlidersHorizontal } from 'lucide-react';
+import { Activity, GitCompare, AlertCircle, Info, Sun, Moon, Tv, LayoutTemplate, SlidersHorizontal } from 'lucide-react';
 
 import { useBackendStatus } from './hooks/useBackendStatus';
 import { useTheme } from './hooks/useTheme';
@@ -20,6 +20,7 @@ import PositionOverTimeChart from './components/charts/PositionOverTimeChart';
 import GapChart from './components/charts/GapChart';
 import DecisionHistoryChart from './components/charts/DecisionHistoryChart';
 
+import F1CarLogo from './components/F1CarLogo';
 import type { RaceState, PredictResponse, TelemetryPoint, DecisionPoint, ComparisonResponse } from './api/client';
 import {
   generateRaceState,
@@ -197,8 +198,8 @@ export default function App() {
       {/* ── Header ─────────────────────────────────────────────────── */}
       <header className="app__header" role="banner">
         <div className="app__brand">
-          <div className="app__logo" aria-hidden="true">
-            <Cpu size={20} />
+          <div className="app__logo" aria-hidden="true" title="SAZI AI Motorsport">
+            <F1CarLogo width={34} height={18} className="app__logo-car" />
           </div>
           <div>
             <h1 className="app__title">SAZI</h1>
