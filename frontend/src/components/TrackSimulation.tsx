@@ -442,26 +442,58 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             strokeLinecap="round"
           />
 
-          {/* ── Normal Real Asphalt Road Surface ──────────────────────── */}
+          {/* ── Normal Real Asphalt Road Surface with Border Markings ── */}
           {/* Outer Road Base Shoulder */}
           <path
             d={CIRCUIT_PATH}
             className="track-sim__road-bed"
-            strokeWidth="44"
+            strokeWidth="46"
           />
 
-          {/* Solid White Outer Road Boundary Markings (Continuous Along Road Edges) */}
+          {/* Black & White Road Border Markings along Edges (Base Black + Dashed White) */}
           <path
             d={CIRCUIT_PATH}
             fill="none"
-            stroke="#e2e8f0"
-            strokeWidth="38"
+            stroke="#090d14"
+            strokeWidth="42"
             strokeLinecap="round"
             strokeLinejoin="round"
-            opacity="0.9"
+          />
+          <path
+            d={CIRCUIT_PATH}
+            fill="none"
+            stroke="#ffffff"
+            strokeWidth="42"
+            strokeDasharray="12 12"
+            strokeLinecap="butt"
+            strokeLinejoin="round"
+            opacity="0.95"
           />
 
-          {/* Real Asphalt Surface (Clean, smooth dark tarmac) */}
+          {/* Red & White FIA Apex Road Border Markings along Curves (Red Base + Dashed White) */}
+          <path
+            d={CIRCUIT_PATH}
+            fill="none"
+            stroke="#dc2626"
+            strokeWidth="42"
+            strokeDasharray="100 180"
+            strokeDashoffset="40"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d={CIRCUIT_PATH}
+            fill="none"
+            stroke="#ffffff"
+            strokeWidth="42"
+            strokeDasharray="8 8"
+            strokeDashoffset="40"
+            strokeLinecap="butt"
+            strokeLinejoin="round"
+            opacity="0.95"
+          />
+
+          {/* Real Asphalt Surface (Clean, smooth dark tarmac sitting on top, leaving 4px border markings on each side) */}
           <path
             d={CIRCUIT_PATH}
             className="track-sim__asphalt-base"
@@ -931,8 +963,12 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             <span>DRS DETECTION & ACTIVATION ZONE</span>
           </div>
           <div className="track-sim__legend-item">
-            <span className="track-sim__legend-dot track-sim__legend-dot--curb" />
-            <span>FIA REGULATION APEX CURBS</span>
+            <span className="track-sim__legend-dot track-sim__legend-dot--curb-rw" />
+            <span>RED-WHITE APEX BORDERS</span>
+          </div>
+          <div className="track-sim__legend-item">
+            <span className="track-sim__legend-dot track-sim__legend-dot--curb-bw" />
+            <span>BLACK-WHITE ROAD BORDERS</span>
           </div>
         </div>
 

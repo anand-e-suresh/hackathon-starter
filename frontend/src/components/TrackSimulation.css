@@ -779,8 +779,16 @@
 
 .track-sim__legend-dot--sazi  { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
 .track-sim__legend-dot--rival { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
-.track-sim__legend-dot--drs   { background: var(--success); border-radius: 2px; }
-.track-sim__legend-dot--curb  { background: #dc2626; border: 1px solid #ffffff; border-radius: 1px; }
+.track-sim__legend-dot--curb-rw {
+  background: repeating-linear-gradient(45deg, #dc2626, #dc2626 3px, #ffffff 3px, #ffffff 6px);
+  border: 1px solid rgba(0,0,0,0.3);
+  border-radius: 2px;
+}
+.track-sim__legend-dot--curb-bw {
+  background: repeating-linear-gradient(45deg, #090d14, #090d14 3px, #ffffff 3px, #ffffff 6px);
+  border: 1px solid rgba(0,0,0,0.3);
+  border-radius: 2px;
+}
 
 .track-sim__live-ers {
   display: flex;
