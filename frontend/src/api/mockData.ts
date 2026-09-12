@@ -64,6 +64,36 @@ export function generateRaceState(): RaceState {
   const tyreDeg = clamp(parseFloat(((_lap * 0.42) + 5.8).toFixed(1)), 5.0, 95.0);
   const efficiency = parseFloat((94.2 + rand(-0.4, 0.4)).toFixed(1));
 
+  // Real-world Formula 1 1.6L V6 Turbo Hybrid gear & RPM calculation
+  // F1 gear ratios (8-speed seamless shift transmission):
+  // Gear 1: 0–95 km/h, Gear 2: 75–125 km/h, Gear 3: 115–165 km/h, Gear 4: 155–208 km/h,
+  // Gear 5: 198–252 km/h, Gear 6: 242–292 km/h, Gear 7: 282–324 km/h, Gear 8: 314–355+ km/h
+  let currentGear = 7;
+  let gearMinV = 282;
+  let gearMaxV = 324;
+  if (_speed < 95) {
+    currentGear = 1; gearMinV = 0; gearMaxV = 95;
+  } else if (_speed < 125) {
+    currentGear = 2; gearMinV = 75; gearMaxV = 125;
+  } else if (_speed < 165) {
+    currentGear = 3; gearMinV = 115; gearMaxV = 165;
+  } else if (_speed < 208) {
+    currentGear = 4; gearMinV = 155; gearMaxV = 208;
+  } else if (_speed < 252) {
+    currentGear = 5; gearMinV = 198; gearMaxV = 252;
+  } else if (_speed < 292) {
+    currentGear = 6; gearMinV = 242; gearMaxV = 292;
+  } else if (_speed < 324) {
+    currentGear = 7; gearMinV = 282; gearMaxV = 324;
+  } else {
+    currentGear = 8; gearMinV = 314; gearMaxV = 355;
+  }
+
+  // Real-world F1 operating RPM: 9,600 RPM to 12,850 RPM (FIA 100 kg/h fuel limit at 10,500; peak shift at 12,850 RPM)
+  const gearSpan = Math.max(1, gearMaxV - gearMinV);
+  const gearRatio = clamp((_speed - gearMinV) / gearSpan, 0, 1);
+  const engineRpm = Math.round(9600 + gearRatio * (12850 - 9600));
+
   return {
     lap: _lap,
     total_laps: TOTAL_LAPS,
@@ -75,6 +105,8 @@ export function generateRaceState(): RaceState {
     energy_deployed_mj: parseFloat(_energyDeployed.toFixed(2)),
     deployment_budget_mj: BUDGET_MJ,
     timestamp: Date.now(),
+    engine_rpm: engineRpm,
+    gear: currentGear,
     tyre_deg_pct: tyreDeg,
     battery_soc_pct: Math.round(_ers),
     efficiency_pct: efficiency,
@@ -221,6 +253,13 @@ function buildSimulation(
       gapAhead = clamp(gapAhead + rand(-0.1, 0.1), 0.1, 5);
     }
 
+    const simSpeed = Math.round(rand(260, 325));
+    const simGear = simSpeed < 282 ? 6 : simSpeed < 320 ? 7 : 8;
+    const simGearMin = simGear === 6 ? 242 : simGear === 7 ? 282 : 314;
+    const simGearMax = simGear === 6 ? 292 : simGear === 7 ? 324 : 355;
+    const simRatio = clamp((simSpeed - simGearMin) / (simGearMax - simGearMin), 0, 1);
+    const simRpm = Math.round(9600 + simRatio * (12850 - 9600));
+
     telemetry.push({
       lap,
       step,
@@ -228,8 +267,10 @@ function buildSimulation(
       position: pos,
       gap_ahead_s: parseFloat(gapAhead.toFixed(2)),
       gap_behind_s: parseFloat(rand(0.3, 2.5).toFixed(2)),
-      speed_kph: Math.round(rand(260, 325)),
+      speed_kph: simSpeed,
       energy_deployed_mj: parseFloat(Math.min(energyDeployed, BUDGET_MJ).toFixed(2)),
+      engine_rpm: simRpm,
+      gear: simGear,
     });
 
     decisions.push({

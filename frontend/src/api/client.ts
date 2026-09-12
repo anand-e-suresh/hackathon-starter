@@ -26,6 +26,8 @@ export interface RaceState {
   deployment_budget_mj: number;
   timestamp: number;
   // Optional telemetry extensions (auto-calculated when not provided by backend)
+  engine_rpm?: number;      // Real-world F1 V6 Turbo Hybrid operating RPM (9,600 - 12,850 RPM; 4,200 idle)
+  gear?: number;            // Transmission gear (1-8)
   tyre_deg_pct?: number;
   battery_soc_pct?: number;
   efficiency_pct?: number;
@@ -65,6 +67,8 @@ export interface TelemetryPoint {
   gap_behind_s: number;
   speed_kph: number;
   energy_deployed_mj: number;
+  engine_rpm?: number;
+  gear?: number;
 }
 
 export interface DecisionPoint {

@@ -58,6 +58,32 @@ const CURBS = [
   { x: 105, y: 395, w: 45, h: 16, rot: -15 },
 ];
 
+/**
+ * Formula 1 Steering Wheel 15-LED Calibration Array
+ * Standard MoTeC / McLaren Applied F1 specifications:
+ * - 5 Green LEDs:  9,600 – 10,600 RPM
+ * - 5 Yellow LEDs: 10,850 – 11,850 RPM (Transition from FIA fuel flow cap at 10,500 RPM)
+ * - 3 Red LEDs:    12,100 – 12,500 RPM (High power zone)
+ * - 2 Blue LEDs:   12,700 – 12,850 RPM (Optimal shift point, all 15 lit -> flashing shift cue)
+ */
+const F1_REV_THRESHOLDS = [
+  9600,   // LED 1  (Green 1)
+  9850,   // LED 2  (Green 2)
+  10100,  // LED 3  (Green 3)
+  10350,  // LED 4  (Green 4)
+  10600,  // LED 5  (Green 5)  - All 5 Greens lit
+  10850,  // LED 6  (Yellow 1)
+  11100,  // LED 7  (Yellow 2)
+  11350,  // LED 8  (Yellow 3)
+  11600,  // LED 9  (Yellow 4)
+  11850,  // LED 10 (Yellow 5) - All 5 Yellows lit
+  12100,  // LED 11 (Red 1)
+  12300,  // LED 12 (Red 2)
+  12500,  // LED 13 (Red 3)    - All 3 Reds lit
+  12700,  // LED 14 (Blue 1)
+  12850,  // LED 15 (Blue 2)   - Shift Point: All 15 LEDs lit + shift flash
+];
+
 // Silverstone Grand Prix Circuit Telemetry Waypoints
 interface TrackWaypoint {
   p: number;
@@ -304,26 +330,28 @@ export default function TrackSimulation({
 
     const revRatio = Math.max(0, Math.min(1, (speed - gInfo.vMin) / (gInfo.vMax - gInfo.vMin)));
 
-    // Accurate 15-LED progressive activation (all 15 light up sequentially until upshift)
-    let activeLeds = Math.min(15, Math.floor(revRatio * 15.8));
-    let rpm = Math.round(9800 + revRatio * 3050);
+    // Real-world Formula 1 V6 Turbo Hybrid operating revs: 9,600 RPM up to 12,850 RPM shift point
+    let rpm = Math.round(9600 + revRatio * (12850 - 9600));
     let shiftState: 'UPSHIFT' | 'DOWNSHIFT' | 'HOLD' | 'NEUTRAL' = 'HOLD';
 
     if (isAccelerating) {
-      if (activeLeds >= 14 || revRatio >= 0.93) {
+      if (revRatio >= 0.96 || rpm >= 12850) {
         shiftState = 'UPSHIFT';
-        activeLeds = 15; // Max out at shift point
+        rpm = 12850; // Optimal shift point - all 15 LEDs lit
       } else {
         shiftState = 'HOLD';
       }
     } else {
       if (brake > 35) {
         shiftState = 'DOWNSHIFT';
-        // Throttle blip on downshift (realistic F1 rev match)
-        rpm = 10800 + ((gInfo.gear % 2) * 500);
-        activeLeds = gInfo.gear % 2 === 0 ? 8 : 7;
+        // Authentic F1 downshift rev-match blip: instantaneous throttle blip to ~11,100 - 11,400 RPM
+        rpm = 11100 + ((gInfo.gear % 2) * 280);
       }
     }
+
+    // 100% Mathematical Synchronization: activeLeds is STRICTLY derived from rpm & F1_REV_THRESHOLDS
+    // This mathematically guarantees that the LED lights and the numeric RPM readout can NEVER contradict each other.
+    const activeLeds = F1_REV_THRESHOLDS.filter((threshold) => rpm >= threshold).length;
 
     const brakeTemp = brake > 50 ? 840 : 640;
     const totalShifts = Math.min(52, Math.max(6, Math.round(50 * (carProgress || 0.1))));
@@ -1235,6 +1263,13 @@ export default function TrackSimulation({
               <div className="track-sim__stat-pair">
                 <span>GEAR SHIFTS THIS LAP:</span>
                 <strong className="mono">{telemetryDynamics.totalShifts} SHIFTS COMPLETED (SEAMLESS SHIFT)</strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>V6 TURBO HYBRID REVS:</span>
+                <strong className="mono" style={{ color: activeLeds === 15 ? 'var(--accent)' : 'var(--text-primary)' }}>
+                  {isRunning ? telemetryDynamics.rpm.toLocaleString() : '4,200'} RPM ({activeLeds}/15 LEDS ACTIVE • PEAK 12,850)
+                </strong>
               </div>
 
               <div className="track-sim__stat-pair">
