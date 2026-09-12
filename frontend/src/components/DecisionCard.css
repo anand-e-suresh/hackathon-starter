@@ -117,22 +117,28 @@
 }
 
 .dc__label {
+  font-family: var(--font-f1);
+  font-style: italic;
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-weight: 800;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-secondary);
 }
 
 .dc__tagline {
+  font-family: var(--font-f1);
+  font-style: italic;
   font-size: 10px;
-  font-weight: 500;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   color: currentColor;
-  opacity: 0.7;
+  opacity: 0.85;
   background: color-mix(in srgb, currentColor 10%, transparent);
-  padding: 3px 8px;
+  padding: 3px 10px;
   border-radius: var(--radius-sm);
-  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  transform: skewX(-6deg);
 }
 
 /* Action row */
@@ -144,18 +150,27 @@
 
 .dc__icon {
   background: color-mix(in srgb, currentColor 10%, transparent);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   padding: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transform: skewX(-6deg);
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+}
+
+.dc__icon svg {
+  transform: skewX(6deg);
 }
 
 .dc__action-text {
-  font-size: 32px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-family: var(--font-f1);
+  font-style: italic;
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   line-height: 1;
   color: currentColor;
   flex: 1;
@@ -182,9 +197,11 @@
 }
 
 .dc__metric-label {
+  font-family: var(--font-f1);
+  font-style: italic;
   font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-muted);
   display: flex;
@@ -193,9 +210,10 @@
 }
 
 .dc__metric-value {
-  font-family: var(--font-mono);
-  font-size: 15px;
-  font-weight: 600;
+  font-family: var(--font-telemetry);
+  font-style: italic;
+  font-size: 16px;
+  font-weight: 800;
   color: var(--text-primary);
 }
 

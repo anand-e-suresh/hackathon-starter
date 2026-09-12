@@ -4,127 +4,141 @@
    ============================================================ */
 
 :root {
-  /* Palette — Dark mode: dark blue, light blue, and green */
-  --bg-base:        #060e18;  /* Deep dark navy */
-  --bg-surface:     #0a1728;  /* Dark blue surface */
-  --bg-card:        #0f223a;  /* Rich dark blue card */
-  --bg-card-hover:  #142b49;  /* Hover dark blue */
-  --bg-elevated:    #193559;  /* Elevated dark blue */
+  /* ── F1 Authentic Motorsport Typography ────────────────────── */
+  --font-f1:         'Titillium Web', 'Rajdhani', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display:    'Titillium Web', 'Rajdhani', sans-serif;
+  --font-telemetry:  'Rajdhani', 'Chakra Petch', 'JetBrains Mono', monospace;
+  --font-sans:       'Titillium Web', 'Inter', system-ui, sans-serif;
+  --font-mono:       'Rajdhani', 'JetBrains Mono', ui-monospace, monospace;
 
-  /* Borders — cool blue tones */
-  --border:         #1d3c66;
-  --border-subtle:  #142b49;
-  --border-bright:  #29548d;
+  /* ── Dark Mode: F1 Paddock Night GP (Dark Blue, Light Blue & Green) ── */
+  --bg-base:        #050913;  /* Ultra-deep technical navy carbon */
+  --bg-surface:     #091220;  /* Paddock telemetry console surface */
+  --bg-card:        #0e1a2d;  /* Aerospace composite cockpit card */
+  --bg-card-hover:  #14253e;  /* Active hover cockpit blue */
+  --bg-elevated:    #1a2f4e;  /* Elevated panel */
 
-  /* Text — cool ice-blue tones */
-  --text-primary:   #eaf2fc;
-  --text-secondary: #92b7dd;
-  --text-muted:     #5b81a7;
-  --text-dim:       #35506e;
+  /* Precision telemetry laser borders */
+  --border:         #19365c;
+  --border-subtle:  #10243d;
+  --border-bright:  #27528a;
 
-  /* Accent — Light Blue */
-  --accent:         #38bdf8;
-  --accent-dim:     rgba(56, 189, 248, 0.12);
-  --accent-glow:    rgba(56, 189, 248, 0.3);
-  --accent-text:    #060e18;
-  --accent-hover:   #0ea5e9;
+  /* Text — cool ice & high-contrast telemetry */
+  --text-primary:   #f0f5fc;
+  --text-secondary: #97bede;
+  --text-muted:     #5e83a7;
+  --text-dim:       #375373;
+
+  /* F1 Brand & Accents */
+  --f1-red:         #ff1801;  /* Official Formula 1 Brand Red */
+  --f1-red-glow:    rgba(255, 24, 1, 0.4);
+  --accent:         #00e5ff;  /* High-voltage Cyan / Light Blue */
+  --accent-dim:     rgba(0, 229, 255, 0.12);
+  --accent-glow:    rgba(0, 229, 255, 0.35);
+  --accent-text:    #050913;
+  --accent-hover:   #38bdf8;
   --chart-purple:   #818cf8;
 
-  /* Action & Status colors — featuring high-visibility neon Green */
-  --overtake:       #ff4d4d;
-  --overtake-dim:   rgba(255, 77, 77, 0.12);
-  --overtake-glow:  rgba(255, 77, 77, 0.3);
-  --overtake-text:  #ff6b6b;
+  /* Action & Status — High-intensity F1 Action Colors */
+  --overtake:       #ff2222;  /* DRS Attack Red */
+  --overtake-dim:   rgba(255, 34, 34, 0.14);
+  --overtake-glow:  rgba(255, 34, 34, 0.38);
+  --overtake-text:  #ff5252;
 
-  --hold:           #f5c842;
-  --hold-dim:       rgba(245, 200, 66, 0.12);
-  --hold-glow:      rgba(245, 200, 66, 0.3);
-  --hold-text:      #f5c842;
+  --hold:           #ffb800;  /* FIA Caution Yellow */
+  --hold-dim:       rgba(255, 184, 0, 0.14);
+  --hold-glow:      rgba(255, 184, 0, 0.35);
+  --hold-text:      #ffb800;
 
-  --recover:        #10e782;  /* Electric neon green */
-  --recover-dim:    rgba(16, 231, 130, 0.14);
-  --recover-glow:   rgba(16, 231, 130, 0.35);
-  --recover-text:   #10e782;
+  --recover:        #00ff87;  /* FIA MGU-K Kinetic Recovery Electric Green */
+  --recover-dim:    rgba(0, 255, 135, 0.14);
+  --recover-glow:   rgba(0, 255, 135, 0.38);
+  --recover-text:   #00ff87;
 
-  --success:        #10e782;  /* Vibrant motorsport green */
-  --warning:        #f5c842;
-  --danger:         #ff4d4d;
-  --info:           #38bdf8;  /* Light blue info */
+  --success:        #00ff87;
+  --warning:        #ffb800;
+  --danger:         #ff2222;
+  --info:           #00e5ff;
 
-  /* Typography */
-  --font-sans:  'Inter', system-ui, sans-serif;
-  --font-mono:  'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  /* Radii — Sharp, aggressive aerodynamic cutouts */
+  --radius-sm:      3px;
+  --radius-md:      6px;
+  --radius-lg:      10px;
+  --radius-xl:      14px;
 
-  /* Radii */
-  --radius-sm:  4px;
-  --radius-md:  8px;
-  --radius-lg:  12px;
-  --radius-xl:  16px;
+  /* Shadows — Deep technical cockpit shadows */
+  --shadow-sm:      0 1px 3px rgba(2, 6, 12, 0.55);
+  --shadow-md:      0 4px 18px rgba(2, 6, 12, 0.65);
+  --shadow-lg:      0 8px 36px rgba(2, 6, 12, 0.8);
 
-  /* Shadows — deep navy ambient */
-  --shadow-sm:  0 1px 3px rgba(3, 9, 16, 0.45);
-  --shadow-md:  0 4px 16px rgba(3, 9, 16, 0.55);
-  --shadow-lg:  0 8px 32px rgba(3, 9, 16, 0.65);
+  /* Speedline accent across top */
+  --f1-header-speedline: linear-gradient(90deg, #ff1801 0%, #00e5ff 35%, #00ff87 70%, transparent 100%);
+  --f1-carbon-pattern: repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 4px);
 
-  /* Transition */
-  --transition: 0.2s ease;
-  --transition-slow: 0.4s ease;
+  /* Transitions */
+  --transition:     0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  --transition-slow: 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* Light Mode Overrides — Warm white, red, and orange */
+/* Light Mode Overrides — F1 Warm White, Red & Orange (Scuderia & McLaren GP) */
 [data-theme="light"] {
-  /* Palette — Warm white & cream base */
-  --bg-base:        #faf5ee;  /* Warm ivory / linen white */
-  --bg-surface:     #f3ede1;  /* Warm soft sand surface */
-  --bg-card:        #ffffff;  /* Pure crisp white card */
-  --bg-card-hover:  #fbf8f2;  /* Warm hover tint */
+  /* Palette — Warm white porcelain Grand Prix chassis */
+  --bg-base:        #f9f6ee;  /* Warm Grand Prix ivory / kerb white */
+  --bg-surface:     #f2ede1;  /* Warm paddock pit lane surface */
+  --bg-card:        #ffffff;  /* Pure aerodynamic white bodywork */
+  --bg-card-hover:  #faf5ee;  /* Warm race-tuned hover */
   --bg-elevated:    #ffffff;
 
-  /* Borders — warm sand / terracotta subtle borders */
-  --border:         #e5dacb;
-  --border-subtle:  #eee5d7;
-  --border-bright:  #d2beaa;
+  /* Borders — precision carbon-trimmed warm sand */
+  --border:         #e2d6c4;
+  --border-subtle:  #ede2d3;
+  --border-bright:  #cebeaa;
 
-  /* Text — deep warm espresso & stone */
-  --text-primary:   #201b16;  /* Deep warm charcoal/espresso */
-  --text-secondary: #4d443b;  /* Warm charcoal */
-  --text-muted:     #7d7164;  /* Warm stone */
-  --text-dim:       #a99c8f;
+  /* Text — deep warm carbon espresso & asphalt stone */
+  --text-primary:   #17130e;  /* Deep warm carbon black */
+  --text-secondary: #40362c;  /* Warm pit-wall charcoal */
+  --text-muted:     #76695b;  /* Warm circuit stone */
+  --text-dim:       #a39380;
 
-  /* Accent — Fiery Orange & Red */
-  --accent:         #ea580c;  /* Energetic motorsport racing orange */
-  --accent-dim:     rgba(234, 88, 12, 0.1);
-  --accent-glow:    rgba(234, 88, 12, 0.28);
+  /* Accent — Official Formula 1 Rosso Corsa & Papaya Orange */
+  --f1-red:         #e10600;  /* Official Formula 1 Rosso Corsa */
+  --f1-red-glow:    rgba(225, 6, 0, 0.35);
+  --accent:         #e10600;  /* F1 Racing Red */
+  --accent-dim:     rgba(225, 6, 0, 0.10);
+  --accent-glow:    rgba(225, 6, 0, 0.30);
   --accent-text:    #ffffff;
-  --accent-hover:   #c2410c;
-  --chart-purple:   #c026d3;
+  --accent-hover:   #bf0500;
+  --chart-purple:   #b5179e;
 
-  /* Action & status colors — rich red, vibrant orange, and balanced green */
-  --overtake:       #dc2626;  /* Bold racing red */
-  --overtake-dim:   rgba(220, 38, 38, 0.1);
-  --overtake-glow:  rgba(220, 38, 38, 0.28);
-  --overtake-text:  #b91c1c;
+  /* Action & Status — High-contrast Red, Papaya Orange, and Podium Green */
+  --overtake:       #e10600;  /* Rosso Corsa DRS Red */
+  --overtake-dim:   rgba(225, 6, 0, 0.12);
+  --overtake-glow:  rgba(225, 6, 0, 0.30);
+  --overtake-text:  #b50500;
 
-  --hold:           #f97316;  /* Vivid orange */
-  --hold-dim:       rgba(249, 115, 22, 0.12);
-  --hold-glow:      rgba(249, 115, 22, 0.28);
-  --hold-text:      #c2410c;
+  --hold:           #ff7b00;  /* Vivid Papaya Orange */
+  --hold-dim:       rgba(255, 123, 0, 0.14);
+  --hold-glow:      rgba(255, 123, 0, 0.30);
+  --hold-text:      #c75600;
 
-  --recover:        #16a34a;  /* Clean racing green */
-  --recover-dim:    rgba(22, 163, 74, 0.1);
-  --recover-glow:   rgba(22, 163, 74, 0.25);
-  --recover-text:   #15803d;
+  --recover:        #009640;  /* Clean FIA Green */
+  --recover-dim:    rgba(0, 150, 64, 0.12);
+  --recover-glow:   rgba(0, 150, 64, 0.28);
+  --recover-text:   #007a33;
 
-  /* Status */
-  --success:        #16a34a;
-  --warning:        #f97316;  /* Orange */
-  --danger:         #dc2626;  /* Red */
-  --info:           #ea580c;  /* Orange-red */
+  --success:        #009640;
+  --warning:        #ff7b00;  /* Papaya Orange */
+  --danger:         #e10600;  /* F1 Red */
+  --info:           #ff7b00;  /* Orange */
 
   /* Shadows — warm ambient */
-  --shadow-sm:  0 1px 3px rgba(65, 45, 25, 0.07);
-  --shadow-md:  0 4px 14px rgba(65, 45, 25, 0.09);
-  --shadow-lg:  0 8px 28px rgba(65, 45, 25, 0.12);
+  --shadow-sm:      0 1px 3px rgba(50, 35, 20, 0.08);
+  --shadow-md:      0 4px 16px rgba(50, 35, 20, 0.11);
+  --shadow-lg:      0 8px 30px rgba(50, 35, 20, 0.14);
+
+  /* Speedline accent across top */
+  --f1-header-speedline: linear-gradient(90deg, #e10600 0%, #ff7b00 40%, #009640 80%, transparent 100%);
+  --f1-carbon-pattern: repeating-linear-gradient(45deg, rgba(0,0,0,0.012) 0px, rgba(0,0,0,0.012) 1px, transparent 1px, transparent 4px);
 }
 
 /* ---- Reset ---- */
@@ -158,14 +172,44 @@ body {
 
 /* ---- Typography ---- */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-sans);
-  font-weight: 600;
-  line-height: 1.2;
+  font-family: var(--font-f1);
+  font-style: italic;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   color: var(--text-primary);
 }
 
 code, pre, .mono {
-  font-family: var(--font-mono);
+  font-family: var(--font-telemetry);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+button {
+  font-family: var(--font-f1);
+}
+
+/* F1 Racing Utility Classes */
+.f1-skew {
+  transform: skewX(-8deg);
+}
+
+.f1-unskew {
+  transform: skewX(8deg);
+}
+
+.f1-italic {
+  font-style: italic;
+  font-family: var(--font-f1);
+}
+
+.f1-timing {
+  font-family: var(--font-telemetry);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.05em;
 }
 
 a {

@@ -16,11 +16,14 @@
   padding: 12px 24px;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
+  border-top: 3px solid transparent;
+  border-image: var(--f1-header-speedline) 1;
   gap: 16px;
   flex-shrink: 0;
   position: sticky;
   top: 0;
   z-index: 100;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
 .app__brand {
@@ -30,9 +33,9 @@
 }
 
 .app__logo {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
   background: var(--accent-dim);
   border: 1px solid var(--accent-glow);
   display: flex;
@@ -40,21 +43,38 @@
   justify-content: center;
   color: var(--accent);
   flex-shrink: 0;
+  transform: skewX(-8deg);
+  transition: transform var(--transition), box-shadow var(--transition);
+  box-shadow: 0 0 12px var(--accent-dim);
+}
+
+.app__logo svg {
+  transform: skewX(8deg);
+}
+
+.app__logo:hover {
+  transform: skewX(-8deg) scale(1.05);
+  box-shadow: 0 0 16px var(--accent-glow);
 }
 
 .app__title {
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  font-family: var(--font-f1);
+  font-style: italic;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
   color: var(--text-primary);
   line-height: 1;
   margin: 0;
+  text-transform: uppercase;
 }
 
 .app__subtitle {
+  font-family: var(--font-f1);
+  font-style: italic;
   font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-muted);
   margin-top: 2px;
@@ -64,19 +84,29 @@
 
 /* Simulation status chip */
 .app__sim-status {
+  font-family: var(--font-f1);
+  font-style: italic;
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-weight: 800;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  padding: 6px 14px;
-  border-radius: var(--radius-md);
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
   border: 1px solid transparent;
+  transform: skewX(-8deg);
   transition: all var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app__sim-status span {
+  transform: skewX(8deg);
 }
 
 .status--idle     { color: var(--text-muted); background: var(--bg-card); border-color: var(--border); }
-.status--running  { color: var(--success); background: var(--recover-dim); border-color: rgba(61,214,140,0.25); }
-.status--paused   { color: var(--warning); background: var(--hold-dim); border-color: rgba(245,200,66,0.25); }
+.status--running  { color: var(--success); background: var(--recover-dim); border-color: rgba(0,255,135,0.3); box-shadow: 0 0 14px var(--recover-dim); }
+.status--paused   { color: var(--warning); background: var(--hold-dim); border-color: rgba(255,184,0,0.3); }
 .status--complete { color: var(--accent); background: var(--accent-dim); border-color: var(--accent-glow); }
 
 /* Backend status */
@@ -123,14 +153,15 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 11px;
+  padding: 5px 12px;
   border-radius: var(--radius-sm);
   background: var(--bg-card);
   border: 1px solid var(--border);
   color: var(--text-secondary);
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 700;
+  font-family: var(--font-f1);
+  font-style: italic;
+  font-size: 11px;
+  font-weight: 800;
   letter-spacing: 0.1em;
   cursor: pointer;
   transition: all var(--transition);
@@ -163,7 +194,7 @@
   align-items: center;
   background: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   padding: 2px;
   gap: 2px;
 }
@@ -171,13 +202,14 @@
 .ui-mode-btn {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 11px;
+  gap: 6px;
+  padding: 5px 12px;
   border-radius: var(--radius-sm);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
+  font-family: var(--font-f1);
+  font-style: italic;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   background: transparent;
   color: var(--text-muted);
   border: 1px solid transparent;
@@ -188,14 +220,14 @@
 
 .ui-mode-btn:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .ui-mode-btn--active {
   background: var(--bg-card);
   color: var(--accent);
-  border-color: var(--border-subtle);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  border-color: var(--border-bright);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
 }
 
 @media (max-width: 900px) {
@@ -219,17 +251,19 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 700;
+  font-family: var(--font-f1);
+  font-style: italic;
+  font-size: 12px;
+  font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 8px 16px;
-  border-radius: var(--radius-md);
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
   border: 1px solid transparent;
   cursor: pointer;
   transition: all var(--transition);
   white-space: nowrap;
+  box-shadow: var(--shadow-sm);
 }
 
 .ctrl-btn:disabled {

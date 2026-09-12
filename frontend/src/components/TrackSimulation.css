@@ -50,15 +50,22 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: var(--font-mono);
+  font-family: var(--font-f1);
+  font-style: italic;
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   color: var(--accent);
   background: var(--accent-dim);
   border: 1px solid var(--accent-glow);
-  padding: 3px 8px;
+  padding: 3px 10px;
   border-radius: var(--radius-sm);
+  transform: skewX(-8deg);
+}
+
+.track-sim__live-badge span,
+.track-sim__live-badge strong {
+  transform: skewX(8deg);
 }
 
 .track-sim__pulse-dot {
@@ -73,9 +80,11 @@
 }
 
 .track-sim__circuit-name {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-family: var(--font-f1);
+  font-style: italic;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
   color: var(--text-secondary);
   text-transform: uppercase;
 }
@@ -95,9 +104,11 @@
 }
 
 .track-sim__hud-label {
+  font-family: var(--font-f1);
+  font-style: italic;
   font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: 800;
+  letter-spacing: 0.12em;
   color: var(--text-muted);
   text-transform: uppercase;
   display: flex;
@@ -106,9 +117,10 @@
 }
 
 .track-sim__hud-val {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 700;
+  font-family: var(--font-telemetry);
+  font-style: italic;
+  font-size: 14px;
+  font-weight: 800;
   color: var(--text-primary);
   line-height: 1.1;
   display: flex;
@@ -231,14 +243,16 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 5px 10px;
+  padding: 5px 12px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   color: var(--text-secondary);
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 700;
+  font-family: var(--font-f1);
+  font-style: italic;
+  font-size: 11px;
+  font-weight: 800;
   letter-spacing: 0.08em;
+  text-transform: uppercase;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all var(--transition);

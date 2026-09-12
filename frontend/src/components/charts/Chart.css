@@ -18,9 +18,11 @@
 }
 
 .chart-title {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-family: var(--font-f1);
+  font-style: italic;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-secondary);
 }
@@ -28,7 +30,9 @@
 .chart-latest {
   font-size: 11px;
   color: var(--text-muted);
-  font-family: var(--font-mono);
+  font-family: var(--font-telemetry);
+  font-style: italic;
+  font-weight: 700;
 }
 
 .chart-note {
