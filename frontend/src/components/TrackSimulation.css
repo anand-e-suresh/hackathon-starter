@@ -1151,6 +1151,223 @@
   to { opacity: 1; transform: translate(-50%, 0) scale(1); }
 }
 
+/* ── F1 Cockpit Bar: Rev Indicator, Pedals & Gear (Bottom of Map) ── */
+.track-sim__cockpit-bar {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(8, 15, 26, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-bottom: 2px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  z-index: 20;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+  animation: banner-pop 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  white-space: nowrap;
+}
+
+[data-theme="light"] .track-sim__cockpit-bar {
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 4px 20px rgba(50, 35, 20, 0.14);
+  border-color: var(--border);
+  border-bottom: 2px solid var(--accent);
+}
+
+/* Cockpit Gear */
+.track-sim__cockpit-gear-cluster {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 52px;
+  border-right: 1px solid var(--border-subtle);
+  padding-right: 12px;
+}
+
+.track-sim__cockpit-gear-lbl {
+  font-family: var(--font-f1);
+  font-style: italic;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.track-sim__cockpit-gear-display {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.track-sim__cockpit-gear-val {
+  font-family: var(--font-telemetry);
+  font-style: italic;
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.track-sim__cockpit-shift-badge {
+  display: flex;
+  align-items: center;
+}
+
+.track-sim__cockpit-shift-badge .shift-pill {
+  font-family: var(--font-f1);
+  font-style: italic;
+  font-size: 8px;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+/* Center Rev LED Strip */
+.track-sim__cockpit-rev-cluster {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 0 4px;
+}
+
+.track-sim__cockpit-rev-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.track-sim__cockpit-rpm-lbl {
+  font-family: var(--font-f1);
+  font-style: italic;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.track-sim__cockpit-rpm-val {
+  font-family: var(--font-telemetry);
+  font-style: italic;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.track-sim__cockpit-rpm-val small {
+  font-size: 8px;
+  color: var(--text-muted);
+}
+
+.track-sim__cockpit-led-strip {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 3px 6px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .track-sim__cockpit-led-strip {
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.track-sim__cockpit-led {
+  width: 7px;
+  height: 11px;
+  border-radius: 1.5px;
+  opacity: 0.18;
+  transition: all 0.06s ease;
+}
+
+.track-sim__cockpit-led--green  { background: #00ff87; }
+.track-sim__cockpit-led--yellow { background: #ffb800; }
+.track-sim__cockpit-led--red    { background: #ff2222; }
+.track-sim__cockpit-led--blue   { background: #a855f7; }
+
+.track-sim__cockpit-led.lit {
+  opacity: 1;
+  box-shadow: 0 0 8px currentColor;
+  filter: brightness(1.25);
+}
+
+/* Pedals (Throttle & Brake) Cluster */
+.track-sim__cockpit-pedals-cluster {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-left: 1px solid var(--border-subtle);
+  padding-left: 12px;
+  min-width: 140px;
+}
+
+.track-sim__cockpit-pedal-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.track-sim__cockpit-pedal-tag {
+  font-family: var(--font-f1);
+  font-style: italic;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  width: 22px;
+}
+
+.track-sim__cockpit-pedal-tag--thr { color: #00ff87; }
+.track-sim__cockpit-pedal-tag--brk { color: #ff2222; }
+
+.track-sim__cockpit-pedal-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .track-sim__cockpit-pedal-track {
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.track-sim__cockpit-pedal-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.08s ease-out;
+}
+
+.track-sim__cockpit-pedal-fill--thr {
+  background: linear-gradient(90deg, #00ff87, #00e5ff);
+  box-shadow: 0 0 6px rgba(0, 229, 255, 0.5);
+}
+
+.track-sim__cockpit-pedal-fill--brk {
+  background: linear-gradient(90deg, #ef4444, #ff2222);
+  box-shadow: 0 0 6px rgba(255, 34, 34, 0.5);
+}
+
+.track-sim__cockpit-pedal-pct {
+  font-family: var(--font-telemetry);
+  font-style: italic;
+  font-size: 10px;
+  font-weight: 800;
+  width: 32px;
+  text-align: right;
+  color: var(--text-primary);
+}
+
 /* ── Responsive adjustments ─────────────────────────────────── */
 @media (max-width: 1100px) {
   .track-sim__telemetry-drawer {
@@ -1160,7 +1377,13 @@
 
 @media (max-width: 800px) {
   .track-sim__canvas-wrapper {
-    height: 300px;
+    height: 320px;
+  }
+  .track-sim__cockpit-bar {
+    bottom: 6px;
+    padding: 6px 10px;
+    gap: 10px;
+    transform: translateX(-50%) scale(0.9);
   }
   .track-sim__telemetry-drawer {
     grid-template-columns: 1fr;
