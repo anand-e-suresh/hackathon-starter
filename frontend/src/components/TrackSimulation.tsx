@@ -449,11 +449,11 @@ export default function TrackSimulation({
                 type="button"
                 className="track-sim__cam-btn"
                 onClick={onToggleUiMode}
-                title="Switch to detailed telemetry stats view"
-                aria-label="Switch to detailed view"
+                title="Switch to Detailed Analysis view"
+                aria-label="Switch to Detailed Analysis view"
               >
                 <Gauge size={12} />
-                <span>DETAILED STATS</span>
+                <span>DETAILED ANALYSIS</span>
               </button>
             )
           )}

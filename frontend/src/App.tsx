@@ -44,7 +44,7 @@ export default function App() {
   // Track simulation visibility
   const [showTrack, setShowTrack] = useState(true);
 
-  // UI Mode: User Friendly (basic stats & clean map) vs Detailed (full telemetry & circuit data)
+  // UI Mode: Overview (basic stats & clean map) vs Detailed Analysis (full telemetry & circuit data)
   const [uiMode, setUiMode] = useState<'simple' | 'detailed'>(() => {
     const saved = localStorage.getItem('sazi-ui-mode');
     return saved === 'simple' || saved === 'detailed' ? saved : 'detailed';
@@ -223,10 +223,10 @@ export default function App() {
               onClick={() => handleSetUiMode('simple')}
               role="radio"
               aria-checked={uiMode === 'simple'}
-              title="Switch to User Friendly UI (basic stats, clean map)"
+              title="Switch to Overview (basic stats, clean map)"
             >
               <LayoutTemplate size={12} />
-              <span>USER FRIENDLY</span>
+              <span>OVERVIEW</span>
             </button>
             <button
               type="button"
@@ -235,10 +235,10 @@ export default function App() {
               onClick={() => handleSetUiMode('detailed')}
               role="radio"
               aria-checked={uiMode === 'detailed'}
-              title="Switch to Detailed Stats UI (deep telemetry & circuit analysis)"
+              title="Switch to Detailed Analysis (deep telemetry & circuit analysis)"
             >
               <SlidersHorizontal size={12} />
-              <span>DETAILED STATS</span>
+              <span>DETAILED ANALYSIS</span>
             </button>
           </div>
 
