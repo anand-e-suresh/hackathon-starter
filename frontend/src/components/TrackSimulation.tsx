@@ -56,15 +56,6 @@ const CURBS = [
   { x: 105, y: 395, w: 45, h: 16, rot: -15 },
 ];
 
-// Starting grid slots along start/finish straight
-const GRID_SLOTS = [
-  { x: 380, y: 404 }, { x: 410, y: 416 },
-  { x: 440, y: 404 }, { x: 470, y: 416 },
-  { x: 500, y: 404 }, { x: 530, y: 416 },
-  { x: 560, y: 404 }, { x: 590, y: 416 },
-  { x: 620, y: 404 }, { x: 650, y: 416 },
-];
-
 export default function TrackSimulation({ raceState, prediction, isRunning }: Props) {
   const pathRef = useRef<SVGPathElement | null>(null);
   const [totalLength, setTotalLength] = useState<number>(1);
@@ -451,61 +442,60 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             strokeLinecap="round"
           />
 
-          {/* ── Circuit Road Base & Real Asphalt ────────────────────────── */}
-          {/* Base Road Bed & Curb Support */}
+          {/* ── Normal Real Asphalt Road Surface ──────────────────────── */}
+          {/* Outer Road Base Shoulder */}
           <path
             d={CIRCUIT_PATH}
             className="track-sim__road-bed"
-            strokeWidth="48"
+            strokeWidth="44"
           />
 
-          {/* Asphalt Surface with Realistic Tarmac Shading */}
+          {/* Solid White Outer Road Boundary Markings (Continuous Along Road Edges) */}
+          <path
+            d={CIRCUIT_PATH}
+            fill="none"
+            stroke="#e2e8f0"
+            strokeWidth="38"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity="0.9"
+          />
+
+          {/* Real Asphalt Surface (Clean, smooth dark tarmac) */}
           <path
             d={CIRCUIT_PATH}
             className="track-sim__asphalt-base"
             stroke="url(#realAsphalt)"
-            strokeWidth="42"
+            strokeWidth="34"
           />
 
-          {/* Asphalt Grain Texture Overlay */}
+          {/* Natural Asphalt Tarmac Grain Texture */}
           <path
             d={CIRCUIT_PATH}
             stroke="url(#asphaltGrain)"
-            strokeWidth="40"
+            strokeWidth="34"
             fill="none"
-            opacity="0.75"
+            opacity="0.35"
           />
 
-          {/* Rubbered-in Racing Line / Groove */}
+          {/* Clean Rubbered-in Driving Line */}
           <path
             d={CIRCUIT_PATH}
             className="track-sim__rubber-line"
-            strokeWidth="16"
+            strokeWidth="12"
           />
 
-          {/* ── Solid White Edge Markings (Inner & Outer Track Limits) ─── */}
+          {/* Normal Road Centerline (Longitudinal Dashed Marking Along the Road) */}
           <path
             d={CIRCUIT_PATH}
             fill="none"
             stroke="#ffffff"
-            strokeWidth="40"
-            strokeDasharray="none"
-            opacity="0.25"
-          />
-          <path
-            d={CIRCUIT_PATH}
-            className="track-sim__edge-line"
-            strokeWidth="39"
+            strokeWidth="1.2"
+            strokeDasharray="16 16"
+            opacity="0.4"
           />
 
-          {/* DRS Zone Strip on Main Straight */}
-          <path
-            d="M 240 410 L 720 410"
-            className={`track-sim__drs-zone ${isDrsActive ? 'track-sim__drs-zone--active' : ''}`}
-            strokeWidth="40"
-          />
-
-          {/* Red & White FIA Apex Curbs */}
+          {/* Red & White FIA Apex Curbs Along Corner Edges */}
           {CURBS.map((c, idx) => (
             <g key={idx} transform={`rotate(${c.rot}, ${c.x + c.w / 2}, ${c.y + c.h / 2})`}>
               <rect
@@ -522,58 +512,25 @@ export default function TrackSimulation({ raceState, prediction, isRunning }: Pr
             </g>
           ))}
 
-          {/* Starting Grid Slots */}
-          <g className="track-sim__grid">
-            {GRID_SLOTS.map((slot, idx) => (
-              <g key={idx} transform={`translate(${slot.x}, ${slot.y})`}>
-                <rect x="-8" y="-4" width="16" height="8" fill="none" stroke="#ffffff" strokeWidth="1.5" />
-                <line x1="-8" y1="4" x2="-8" y2="-4" stroke="#facc15" strokeWidth="2" />
-                <text x="-4" y="2" className="track-sim__grid-num">{idx + 1}</text>
-              </g>
-            ))}
-          </g>
-
-          {/* Start / Finish Checkered Line */}
-          <g transform="translate(340, 390)">
-            <rect x="0" y="0" width="12" height="40" fill="#ffffff" />
-            <rect x="0" y="0" width="6" height="10" fill="#000000" />
-            <rect x="6" y="10" width="6" height="10" fill="#000000" />
-            <rect x="0" y="20" width="6" height="10" fill="#000000" />
-            <rect x="6" y="30" width="6" height="10" fill="#000000" />
-            <text x="-12" y="-6" className="track-sim__sf-text">START / FINISH LINE</text>
-          </g>
-
-          {/* Brake Distance Boards (150m, 100m, 50m approaching Turn 1) */}
+          {/* Brake Distance Boards Off-Track (150m, 100m, 50m approaching Turn 1) */}
           <g className="track-sim__brake-boards">
-            <g transform="translate(710, 435)">
+            <g transform="translate(710, 442)">
               <rect x="-10" y="-8" width="20" height="12" rx="1" fill="#0f172a" stroke="#ffffff" strokeWidth="1" />
               <text x="0" y="1" textAnchor="middle" fill="#ffffff" fontSize="7" fontWeight="bold" fontFamily="monospace">150</text>
             </g>
-            <g transform="translate(740, 435)">
+            <g transform="translate(740, 442)">
               <rect x="-10" y="-8" width="20" height="12" rx="1" fill="#0f172a" stroke="#ffffff" strokeWidth="1" />
               <text x="0" y="1" textAnchor="middle" fill="#ffffff" fontSize="7" fontWeight="bold" fontFamily="monospace">100</text>
             </g>
-            <g transform="translate(770, 435)">
+            <g transform="translate(770, 442)">
               <rect x="-10" y="-8" width="20" height="12" rx="1" fill="#0f172a" stroke="#ffffff" strokeWidth="1" />
               <text x="0" y="1" textAnchor="middle" fill="#ffffff" fontSize="7" fontWeight="bold" fontFamily="monospace">50</text>
             </g>
           </g>
 
-          {/* DRS Detection Point Marker */}
-          <g transform="translate(200, 410)">
-            <line x1="0" y1="-22" x2="0" y2="22" stroke="var(--accent)" strokeWidth="3" strokeDasharray="3 3" />
-            <text x="-4" y="-26" className="track-sim__drs-marker-text">DRS DETECTION POINT (1.0s GAP LIMIT)</text>
-          </g>
-
-          {/* Sector Splits */}
-          <g transform="translate(770, 145)">
-            <line x1="0" y1="0" x2="0" y2="46" stroke="#fbbf24" strokeWidth="2.5" strokeDasharray="4 2" />
-            <text x="0" y="-6" className="track-sim__sector-split-text">INT 1 (SECTOR 1)</text>
-          </g>
-          <g transform="translate(260, 205)">
-            <line x1="0" y1="0" x2="0" y2="46" stroke="#fbbf24" strokeWidth="2.5" strokeDasharray="4 2" />
-            <text x="0" y="-6" className="track-sim__sector-split-text">INT 2 (SECTOR 2)</text>
-          </g>
+          {/* Trackside Sector Labels (Placed Off-Track, Not Cutting Across the Road) */}
+          <text x="770" y="130" className="track-sim__sector-split-text">INT 1 (SECTOR 1)</text>
+          <text x="260" y="190" className="track-sim__sector-split-text">INT 2 (SECTOR 2)</text>
 
           {/* Hidden reference path for exact coordinate sampling */}
           <path ref={pathRef} d={CIRCUIT_PATH} fill="none" stroke="none" />
