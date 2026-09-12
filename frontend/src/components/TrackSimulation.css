@@ -373,6 +373,33 @@
   font-weight: 800;
 }
 
+/* ── Turn Markers & FIA Badges ── */
+.track-sim__turn-marker {
+  cursor: pointer;
+  transition: transform 0.18s ease;
+}
+
+.track-sim__turn-marker:hover {
+  transform: scale(1.35);
+}
+
+.track-sim__turn-circle {
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.7));
+}
+
+.track-sim__drs-markers text {
+  font-family: var(--font-telemetry);
+  letter-spacing: 0.04em;
+  paint-order: stroke fill;
+  stroke: rgba(5, 10, 20, 0.85);
+  stroke-width: 1px;
+}
+
+.track-sim__onboard-pill--corner {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.08);
+}
+
 /* ── Realistic 3D F1 Car Elements ────────────────────────────── */
 .track-sim__car-label {
   font-family: var(--font-mono);

@@ -12,6 +12,14 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { Zap, Eye, Flag, ChevronDown, ChevronUp, Gauge, Wind, ArrowUp, ArrowDown, Timer, BatteryMedium, Disc, Cpu, RefreshCw } from 'lucide-react';
 import type { RaceState, PredictResponse } from '../api/client';
+import {
+  TRACK_WIDTH,
+  TRACK_HEIGHT,
+  CIRCUIT_PATH,
+  CURBS,
+  SILVERSTONE_TURNS,
+  getSilverstoneTelemetry,
+} from '../utils/silverstoneTrack';
 import './TrackSimulation.css';
 
 interface Props {
@@ -21,103 +29,6 @@ interface Props {
   isSimpleMode?: boolean;
   onToggleUiMode?: () => void;
 }
-
-// Circuit dimensions
-const TRACK_WIDTH = 1000;
-const TRACK_HEIGHT = 480;
-
-// Grand Prix Circuit SVG Path (Smooth continuous closed racing loop)
-const CIRCUIT_PATH =
-  'M 220 410 ' +
-  'L 740 410 ' +
-  'C 840 410, 910 370, 910 290 ' +
-  'C 910 210, 840 170, 770 170 ' +
-  'L 680 170 ' +
-  'C 630 170, 610 120, 650 80 ' +
-  'C 680 50, 650 30, 590 30 ' +
-  'L 260 30 ' +
-  'C 180 30, 120 70, 120 140 ' +
-  'C 120 210, 180 230, 260 230 ' +
-  'L 450 230 ' +
-  'C 510 230, 530 280, 480 320 ' +
-  'C 440 340, 380 340, 310 340 ' +
-  'L 220 340 ' +
-  'C 140 340, 90 370, 110 405 ' +
-  'C 125 410, 160 410, 220 410 Z';
-
-// Apex curb locations
-const CURBS = [
-  { x: 740, y: 402, w: 70, h: 16, rot: 5 },
-  { x: 902, y: 275, w: 16, h: 80, rot: 0 },
-  { x: 765, y: 160, w: 60, h: 16, rot: 0 },
-  { x: 640, y: 70, w: 45, h: 16, rot: -30 },
-  { x: 250, y: 18, w: 75, h: 16, rot: 0 },
-  { x: 108, y: 125, w: 16, h: 70, rot: 0 },
-  { x: 445, y: 218, w: 60, h: 16, rot: 0 },
-  { x: 475, y: 310, w: 50, h: 16, rot: 40 },
-  { x: 105, y: 395, w: 45, h: 16, rot: -15 },
-];
-
-/**
- * Formula 1 Steering Wheel 15-LED Calibration Array
- * Standard MoTeC / McLaren Applied F1 specifications:
- * - 5 Green LEDs:  9,600 – 10,600 RPM
- * - 5 Yellow LEDs: 10,850 – 11,850 RPM (Transition from FIA fuel flow cap at 10,500 RPM)
- * - 3 Red LEDs:    12,100 – 12,500 RPM (High power zone)
- * - 2 Blue LEDs:   12,700 – 12,850 RPM (Optimal shift point, all 15 lit -> flashing shift cue)
- */
-const F1_REV_THRESHOLDS = [
-  9600,   // LED 1  (Green 1)
-  9850,   // LED 2  (Green 2)
-  10100,  // LED 3  (Green 3)
-  10350,  // LED 4  (Green 4)
-  10600,  // LED 5  (Green 5)  - All 5 Greens lit
-  10850,  // LED 6  (Yellow 1)
-  11100,  // LED 7  (Yellow 2)
-  11350,  // LED 8  (Yellow 3)
-  11600,  // LED 9  (Yellow 4)
-  11850,  // LED 10 (Yellow 5) - All 5 Yellows lit
-  12100,  // LED 11 (Red 1)
-  12300,  // LED 12 (Red 2)
-  12500,  // LED 13 (Red 3)    - All 3 Reds lit
-  12700,  // LED 14 (Blue 1)
-  12850,  // LED 15 (Blue 2)   - Shift Point: All 15 LEDs lit + shift flash
-];
-
-// Silverstone Grand Prix Circuit Telemetry Waypoints
-interface TrackWaypoint {
-  p: number;
-  speed: number;    // calibrated speed in km/h
-  throttle: number; // 0 to 100
-  brake: number;    // 0 to 100
-  latG: number;     // lateral G force
-}
-
-const CIRCUIT_WAYPOINTS: TrackWaypoint[] = [
-  { p: 0.00, speed: 268, throttle: 100, brake: 0,  latG: 0.2 }, // Hamilton Straight
-  { p: 0.12, speed: 320, throttle: 100, brake: 0,  latG: 0.3 }, // Approach Abbey
-  { p: 0.16, speed: 275, throttle: 80,  brake: 12, latG: 3.2 }, // Abbey Turn 1
-  { p: 0.21, speed: 250, throttle: 55,  brake: 25, latG: 2.8 }, // Farm Turn 2
-  { p: 0.25, speed: 170, throttle: 0,   brake: 90, latG: 1.4 }, // Heavy braking into Village
-  { p: 0.27, speed: 88,  throttle: 15,  brake: 60, latG: 2.2 }, // The Loop hairpin
-  { p: 0.31, speed: 118, throttle: 85,  brake: 0,  latG: 1.8 }, // Aintree exit
-  { p: 0.36, speed: 245, throttle: 100, brake: 0,  latG: 0.3 }, // Wellington Straight
-  { p: 0.39, speed: 308, throttle: 100, brake: 0,  latG: 0.2 }, // End Wellington Straight
-  { p: 0.42, speed: 165, throttle: 0,   brake: 88, latG: 1.5 }, // Brooklands braking
-  { p: 0.46, speed: 128, throttle: 55,  brake: 15, latG: 3.1 }, // Luffield cornering
-  { p: 0.49, speed: 175, throttle: 90,  brake: 0,  latG: 2.4 }, // Woodcote exit
-  { p: 0.55, speed: 292, throttle: 100, brake: 0,  latG: 0.4 }, // Approach Copse
-  { p: 0.58, speed: 282, throttle: 88,  brake: 8,  latG: 5.1 }, // Copse Corner
-  { p: 0.63, speed: 260, throttle: 78,  brake: 18, latG: 4.6 }, // Maggotts
-  { p: 0.67, speed: 212, throttle: 65,  brake: 28, latG: 4.2 }, // Becketts
-  { p: 0.71, speed: 248, throttle: 95,  brake: 0,  latG: 2.1 }, // Chapel exit
-  { p: 0.77, speed: 318, throttle: 100, brake: 0,  latG: 0.2 }, // Hangar Straight
-  { p: 0.83, speed: 336, throttle: 100, brake: 0,  latG: 0.2 }, // End Hangar Straight
-  { p: 0.86, speed: 182, throttle: 0,   brake: 94, latG: 2.6 }, // Stowe braking
-  { p: 0.90, speed: 92,  throttle: 0,   brake: 96, latG: 1.6 }, // Vale Chicane
-  { p: 0.93, speed: 138, throttle: 85,  brake: 0,  latG: 2.9 }, // Club entry
-  { p: 0.97, speed: 235, throttle: 100, brake: 0,  latG: 1.1 }, // Club exit onto straight
-];
 
 export default function TrackSimulation({
   raceState,
@@ -146,13 +57,23 @@ export default function TrackSimulation({
     let lastTime = performance.now();
 
     const animate = (now: number) => {
-      const dt = (now - lastTime) / 1000;
+      const dt = Math.min(0.08, (now - lastTime) / 1000);
       lastTime = now;
 
       if (isRunning) {
-        const speedKph = raceState?.speed_kph ?? 285;
-        const speedDelta = (speedKph / 300) * 0.045 * dt;
-        setCarProgress((prev) => (prev + speedDelta) % 1);
+        setCarProgress((prev) => {
+          // Authentic Silverstone circuit physics:
+          // Evaluate instantaneous speed from the 18-turn track profile
+          const isDrs = (prev > 0.88 || prev < 0.14) || (prev >= 0.34 && prev <= 0.40);
+          const tel = getSilverstoneTelemetry(prev, isDrs);
+          // Realistic Silverstone lap speed progression:
+          // Average speed across lap is ~243.5 km/h.
+          // Visual calibration factor ~0.038 gives ~26.3s per complete lap:
+          // The Loop (88 km/h) -> 0.0137 / sec (visibly crawls through hairpin)
+          // Hangar Straight (336 km/h) -> 0.0524 / sec (surges at almost 4x speed)
+          const speedDelta = (tel.speed / 243.5) * 0.038 * dt;
+          return (prev + speedDelta) % 1;
+        });
 
         // Overtake vs energy preservation dynamics
         const isOvertakeMode = prediction?.action === 'OVERTAKE';
@@ -264,111 +185,11 @@ export default function TrackSimulation({
         brakeTemp: 450,
         shiftState: 'NEUTRAL' as const,
         totalShifts: 0,
+        cornerName: 'Hamilton Straight',
       };
     }
 
-    // Find enclosing waypoints along Silverstone circuit
-    const n = CIRCUIT_WAYPOINTS.length;
-    let idx = 0;
-    for (let i = 0; i < n; i++) {
-      if (CIRCUIT_WAYPOINTS[i].p <= carProgress) {
-        idx = i;
-      }
-    }
-    const nextIdx = (idx + 1) % n;
-    const w0 = CIRCUIT_WAYPOINTS[idx];
-    const w1 = CIRCUIT_WAYPOINTS[nextIdx];
-
-    let span = w1.p - w0.p;
-    if (span <= 0) span += 1;
-    let offset = carProgress - w0.p;
-    if (offset < 0) offset += 1;
-    const t = Math.max(0, Math.min(1, offset / span));
-    const s = 0.5 - 0.5 * Math.cos(t * Math.PI);
-
-    let speed = Math.round(w0.speed + (w1.speed - w0.speed) * s);
-    let throttle = Math.round(w0.throttle + (w1.throttle - w0.throttle) * s);
-    let brake = Math.round(w0.brake + (w1.brake - w0.brake) * s);
-    const latG = parseFloat((w0.latG + (w1.latG - w0.latG) * s).toFixed(1));
-
-    if (isDrsActive && throttle > 90) {
-      speed += 12;
-    }
-
-    const speedDelta = w1.speed - w0.speed;
-    const isAccelerating = speedDelta >= 0;
-    const lonG = parseFloat((isAccelerating ? Math.min(2.4, (throttle / 100) * 2.2) : -Math.min(5.2, (brake / 100) * 5.0)).toFixed(1));
-
-    // Gear envelopes for authentic progressive rev build-up & shift points
-    const GEARS_ACCEL = [
-      { gear: 2, vMin: 72,  vMax: 118 },
-      { gear: 3, vMin: 110, vMax: 158 },
-      { gear: 4, vMin: 150, vMax: 202 },
-      { gear: 5, vMin: 194, vMax: 248 },
-      { gear: 6, vMin: 238, vMax: 288 },
-      { gear: 7, vMin: 278, vMax: 320 },
-      { gear: 8, vMin: 310, vMax: 350 },
-    ];
-
-    const GEARS_DECEL = [
-      { gear: 2, vMin: 70,  vMax: 110 },
-      { gear: 3, vMin: 100, vMax: 150 },
-      { gear: 4, vMin: 140, vMax: 195 },
-      { gear: 5, vMin: 185, vMax: 240 },
-      { gear: 6, vMin: 230, vMax: 280 },
-      { gear: 7, vMin: 270, vMax: 315 },
-      { gear: 8, vMin: 305, vMax: 350 },
-    ];
-
-    const gears = isAccelerating ? GEARS_ACCEL : GEARS_DECEL;
-    let gInfo = gears[0];
-    for (let i = 0; i < gears.length; i++) {
-      if (speed >= gears[i].vMin) {
-        gInfo = gears[i];
-      }
-    }
-
-    const revRatio = Math.max(0, Math.min(1, (speed - gInfo.vMin) / (gInfo.vMax - gInfo.vMin)));
-
-    // Real-world Formula 1 V6 Turbo Hybrid operating revs: 9,600 RPM up to 12,850 RPM shift point
-    let rpm = Math.round(9600 + revRatio * (12850 - 9600));
-    let shiftState: 'UPSHIFT' | 'DOWNSHIFT' | 'HOLD' | 'NEUTRAL' = 'HOLD';
-
-    if (isAccelerating) {
-      if (revRatio >= 0.96 || rpm >= 12850) {
-        shiftState = 'UPSHIFT';
-        rpm = 12850; // Optimal shift point - all 15 LEDs lit
-      } else {
-        shiftState = 'HOLD';
-      }
-    } else {
-      if (brake > 35) {
-        shiftState = 'DOWNSHIFT';
-        // Authentic F1 downshift rev-match blip: instantaneous throttle blip to ~11,100 - 11,400 RPM
-        rpm = 11100 + ((gInfo.gear % 2) * 280);
-      }
-    }
-
-    // 100% Mathematical Synchronization: activeLeds is STRICTLY derived from rpm & F1_REV_THRESHOLDS
-    // This mathematically guarantees that the LED lights and the numeric RPM readout can NEVER contradict each other.
-    const activeLeds = F1_REV_THRESHOLDS.filter((threshold) => rpm >= threshold).length;
-
-    const brakeTemp = brake > 50 ? 840 : 640;
-    const totalShifts = Math.min(52, Math.max(6, Math.round(50 * (carProgress || 0.1))));
-
-    return {
-      speed,
-      throttle,
-      brake,
-      gear: gInfo.gear,
-      rpm,
-      activeLeds,
-      latG,
-      lonG,
-      brakeTemp,
-      shiftState,
-      totalShifts,
-    };
+    return getSilverstoneTelemetry(carProgress, isDrsActive);
   }, [carProgress, isDrsActive, isRunning, raceState?.speed_kph]);
 
   const speed = isRunning ? telemetryDynamics.speed : (raceState?.speed_kph ?? 0);
@@ -820,6 +641,74 @@ export default function TrackSimulation({
               <text x="770" y="130" className="track-sim__sector-split-text">INT 1 (SECTOR 1)</text>
               <text x="260" y="190" className="track-sim__sector-split-text">INT 2 (SECTOR 2)</text>
 
+              {/* DRS Detection Points & Activation Zones */}
+              <g className="track-sim__drs-markers">
+                {/* DRS Detection 1: Village */}
+                <g transform="translate(915, 345)">
+                  <line x1="-12" y1="0" x2="12" y2="0" stroke="#00f0ff" strokeWidth="2" strokeDasharray="3 2" />
+                  <rect x="-18" y="-12" width="36" height="8" rx="2" fill="#04121e" stroke="#00f0ff" strokeWidth="0.8" />
+                  <text x="0" y="-6" textAnchor="middle" fill="#00f0ff" fontSize="5" fontWeight="bold">DRS DET 1</text>
+                </g>
+                {/* DRS Zone 1: Wellington Straight */}
+                <g transform="translate(730, 170)">
+                  <line x1="0" y1="-12" x2="0" y2="12" stroke="#10e782" strokeWidth="2.2" />
+                  <rect x="-20" y="-19" width="40" height="8" rx="2" fill="#021a10" stroke="#10e782" strokeWidth="0.8" />
+                  <text x="0" y="-13" textAnchor="middle" fill="#10e782" fontSize="5" fontWeight="bold">DRS ZONE 1</text>
+                </g>
+                {/* DRS Detection 2: Becketts */}
+                <g transform="translate(365, 30)">
+                  <line x1="0" y1="-12" x2="0" y2="12" stroke="#00f0ff" strokeWidth="2" strokeDasharray="3 2" />
+                  <rect x="-18" y="-14" width="36" height="8" rx="2" fill="#04121e" stroke="#00f0ff" strokeWidth="0.8" />
+                  <text x="0" y="-8" textAnchor="middle" fill="#00f0ff" fontSize="5" fontWeight="bold">DRS DET 2</text>
+                </g>
+                {/* DRS Zone 2: Chapel Exit */}
+                <g transform="translate(120, 110)">
+                  <line x1="-12" y1="0" x2="12" y2="0" stroke="#10e782" strokeWidth="2.2" />
+                  <rect x="10" y="-4" width="40" height="8" rx="2" fill="#021a10" stroke="#10e782" strokeWidth="0.8" />
+                  <text x="30" y="2" textAnchor="middle" fill="#10e782" fontSize="5" fontWeight="bold">DRS ZONE 2</text>
+                </g>
+                {/* Speed Trap: Hangar Straight */}
+                <g transform="translate(120, 175)">
+                  <line x1="-12" y1="0" x2="12" y2="0" stroke="#f59e0b" strokeWidth="2" strokeDasharray="2 2" />
+                  <rect x="10" y="-4" width="56" height="8" rx="2" fill="#1c1404" stroke="#f59e0b" strokeWidth="0.8" />
+                  <text x="38" y="2" textAnchor="middle" fill="#f59e0b" fontSize="5" fontWeight="bold">SPEED TRAP 336</text>
+                </g>
+                {/* Start / Finish Checkered Gantry */}
+                <g transform="translate(360, 410)">
+                  <line x1="0" y1="-16" x2="0" y2="16" stroke="#ffffff" strokeWidth="2.5" strokeDasharray="4 4" />
+                  <rect x="-30" y="16" width="60" height="8" rx="2" fill="#090d14" stroke="#ffffff" strokeWidth="0.8" />
+                  <text x="0" y="22" textAnchor="middle" fill="#ffffff" fontSize="5" fontWeight="bold">FINISH LINE</text>
+                </g>
+              </g>
+
+              {/* Official FIA Silverstone Turn Markers (T1 to T18) */}
+              <g className="track-sim__turn-markers">
+                {SILVERSTONE_TURNS.map((t) => (
+                  <g key={t.number} transform={`translate(${t.x}, ${t.y})`} className="track-sim__turn-marker">
+                    <circle
+                      cx="0"
+                      cy="0"
+                      r="7.5"
+                      fill="#0b1320"
+                      stroke={t.type === 'high-speed' ? '#00f0ff' : t.type === 'hairpin' ? '#ef4444' : '#10e782'}
+                      strokeWidth="1.2"
+                      className="track-sim__turn-circle"
+                    />
+                    <text
+                      x="0"
+                      y="2.6"
+                      textAnchor="middle"
+                      fill="#ffffff"
+                      fontSize="6.8"
+                      fontWeight="900"
+                      fontFamily="monospace"
+                    >
+                      {t.number}
+                    </text>
+                  </g>
+                ))}
+              </g>
+
               {/* Silverstone Iconic Corners & Straights (Clean Off-Track Labels) */}
               <g className="track-sim__corner-annotations">
                 {/* Start / Finish & Hamilton Straight */}
@@ -829,7 +718,7 @@ export default function TrackSimulation({
                 <text x="815" y="442" className="track-sim__corner-label track-sim__corner-label--apex">ABBEY & FARM (T1-T2)</text>
 
                 {/* Village & The Loop (T3 - T4) */}
-                <text x="880" y="270" className="track-sim__corner-label track-sim__corner-label--apex">THE LOOP (T4 • 78 KM/H)</text>
+                <text x="880" y="270" className="track-sim__corner-label track-sim__corner-label--apex">THE LOOP (T4 • 88 KM/H)</text>
 
                 {/* Wellington Straight (DRS Zone 1) */}
                 <text x="770" y="98" className="track-sim__corner-label track-sim__corner-label--drs">WELLINGTON STRAIGHT (DRS 1)</text>
@@ -838,7 +727,7 @@ export default function TrackSimulation({
                 <text x="590" y="112" className="track-sim__corner-label track-sim__corner-label--apex">BROOKLANDS & LUFFIELD (T6-T7)</text>
 
                 {/* Copse Corner (T9 - High Speed) */}
-                <text x="475" y="202" className="track-sim__corner-label track-sim__corner-label--apex">COPSE (T9 • 290 KM/H • 5.2G)</text>
+                <text x="475" y="202" className="track-sim__corner-label track-sim__corner-label--apex">COPSE (T9 • 282 KM/H • 5.1G)</text>
 
                 {/* Maggotts & Becketts (T10 - T13) */}
                 <text x="235" y="18" className="track-sim__corner-label track-sim__corner-label--apex">MAGGOTTS & BECKETTS (T10-T13)</text>
@@ -848,7 +737,7 @@ export default function TrackSimulation({
 
                 {/* Hangar Straight (DRS Zone 2) */}
                 <text x="42" y="130" transform="rotate(-90 42 130)" className="track-sim__corner-label track-sim__corner-label--drs">
-                  HANGAR STRAIGHT (DRS 2 • 335 KM/H)
+                  HANGAR STRAIGHT (DRS 2 • 336 KM/H)
                 </text>
 
                 {/* Stowe Corner (T15) */}
@@ -1141,6 +1030,10 @@ export default function TrackSimulation({
               <div className="track-sim__onboard-pill">
                 <span>EFF</span>
                 <strong className="mono" style={{ color: 'var(--accent)' }}>{ersEfficiency.toFixed(1)}%</strong>
+              </div>
+              <div className="track-sim__onboard-pill track-sim__onboard-pill--corner">
+                <span>APEX</span>
+                <strong className="mono" style={{ color: '#fbbf24' }}>{telemetryDynamics.cornerName}</strong>
               </div>
             </div>
           </div>
@@ -1571,36 +1464,53 @@ export default function TrackSimulation({
             </div>
           </div>
 
-          {/* Card 7: Silverstone Grand Prix Circuit Benchmarks & Weather */}
+          {/* Card 7: Silverstone Grand Prix Circuit Benchmarks & Real Track Data */}
           <div className="track-sim__drawer-card">
             <div className="track-sim__drawer-header">
               <Timer size={13} />
-              <span>SILVERSTONE GP BENCHMARKS</span>
+              <span>SILVERSTONE GP BENCHMARKS & CIRCUIT DATA</span>
             </div>
             <div className="track-sim__drawer-body">
               <div className="track-sim__stat-pair">
                 <span>CIRCUIT SPEC:</span>
-                <strong className="mono">5.891 KM • 18 TURNS • 52 LAPS</strong>
+                <strong className="mono">5.891 KM (3.660 MI) • 18 TURNS (10R, 8L) • 52 LAPS</strong>
               </div>
 
               <div className="track-sim__stat-pair">
                 <span>OFFICIAL LAP RECORD:</span>
-                <strong className="mono" style={{ color: 'var(--accent)' }}>1:27.097 (M. VERSTAPPEN, 2020)</strong>
+                <strong className="mono" style={{ color: 'var(--accent)' }}>
+                  1:27.097 (M. VERSTAPPEN • RED BULL RB16 • 243.5 KM/H AVG)
+                </strong>
               </div>
 
               <div className="track-sim__stat-pair">
-                <span>SECTOR BENCHMARKS:</span>
-                <strong className="mono">S1: 27.84s | S2: 34.91s | S3: 24.34s</strong>
+                <span>TOP SPEED TRAP (HANGAR):</span>
+                <strong className="mono" style={{ color: '#f59e0b' }}>336.4 KM/H (209.0 MPH)</strong>
               </div>
 
               <div className="track-sim__stat-pair">
-                <span>CONDITIONS:</span>
-                <strong className="mono">TRACK: 34.2°C • AIR: 22.8°C • DRY</strong>
+                <span>SLOWEST APEX (THE LOOP):</span>
+                <strong className="mono">88.0 KM/H (TURN 4 HAIRPIN • GEAR 2)</strong>
               </div>
 
               <div className="track-sim__stat-pair">
-                <span>FIA FUEL FLOW:</span>
-                <strong className="mono">98.4 KG/H (100.0 KG/H REGULATION CAP)</strong>
+                <span>MAX CORNERING LOAD:</span>
+                <strong className="mono" style={{ color: '#ef4444' }}>5.2G LATERAL (TURN 9 COPSE • 282 KM/H)</strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>HEAVIEST BRAKING:</span>
+                <strong className="mono">-4.8G LONGITUDINAL (TURN 15 STOWE • 336 → 182 KM/H)</strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>DRS ACTIVATION ZONES:</span>
+                <strong className="mono" style={{ color: '#10e782' }}>ZONE 1: WELLINGTON (480M) • ZONE 2: HANGAR (750M)</strong>
+              </div>
+
+              <div className="track-sim__stat-pair">
+                <span>WEATHER / TRACK:</span>
+                <strong className="mono">TRACK: 34.2°C • AIR: 21.4°C • WIND: 14 KM/H SW (HEADWIND)</strong>
               </div>
             </div>
           </div>

@@ -18,6 +18,8 @@ import type {
   ComparisonResponse,
 } from './client';
 
+import { getSilverstoneTelemetry } from '../utils/silverstoneTrack';
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const clamp = (v: number, min: number, max: number) =>
@@ -33,8 +35,8 @@ let _pos = 7;
 let _ers = 72;
 let _gapAhead = 1.2;
 let _gapBehind = 0.8;
-let _speed = 285;
 let _energyDeployed = 0.6;
+let _trackProgress = 0.0;
 const TOTAL_LAPS = 52; // Silverstone Grand Prix race distance (5.891 km x 52 laps = 306.198 km)
 const BUDGET_MJ = 4.0;  // FIA Technical Regulation Article 5.2.2 max per-lap ERS deployment limit
 
@@ -47,9 +49,9 @@ export function resetMockState() {
   _ers = 72;
   _gapAhead = 1.2;
   _gapBehind = 0.8;
-  _speed = 285;
   _energyDeployed = 0.6;
   _lastAction = 'HOLD';
+  _trackProgress = 0.0;
 }
 
 export function setPredictedAction(action: PredictResponse['action']) {
@@ -57,24 +59,28 @@ export function setPredictedAction(action: PredictResponse['action']) {
 }
 
 export function generateRaceState(): RaceState {
-  // Determine driving mode from current speed dynamics & active AI strategy
-  const isHighThrottle = _speed > 280;
-  const isBraking = _speed < 245;
+  // Advance mock progress along Silverstone 5.891 km circuit
+  _trackProgress = (_trackProgress + 0.045) % 1.0;
+  const isOvertake = _lastAction === 'OVERTAKE';
+  const tel = getSilverstoneTelemetry(_trackProgress, isOvertake);
+
+  const isHighThrottle = tel.throttle > 80;
+  const isBraking = tel.brake > 30;
 
   // Real-world Formula 1 ERS Energy Dynamics (FIA Article 5.2.2: 4.00 MJ usable battery capacity):
   // 1. When overtaking / attacking (high speed & full throttle deployment):
-  //    MGU-K discharges at peak 120 kW (160 BHP) -> Battery clearly decreases (-3.0% to -6.5% per tick)
+  //    MGU-K discharges at peak 120 kW (160 BHP) -> Battery clearly decreases (-3.0% to -5.8% per tick)
   //    Energy deployed increases up towards 4.00 MJ budget.
   // 2. When braking / regenerating (corners, decel, RECOVER mode):
-  //    MGU-K captures kinetic energy at up to 120 kW regen -> Battery clearly increases (+2.5% to +5.5% per tick)
+  //    MGU-K captures kinetic energy at up to 120 kW regen -> Battery clearly increases (+2.8% to +5.2% per tick)
   // 3. When holding / tactical cruising:
-  //    Gentle drift balancing high-speed drag against MGU-H turbo thermal recovery (-0.5% to +0.5%)
-  if (_lastAction === 'OVERTAKE' || isHighThrottle || _speed > 300) {
+  //    Gentle drift balancing high-speed drag against MGU-H turbo thermal recovery (-0.8% to +0.4%)
+  if (_lastAction === 'OVERTAKE' || isHighThrottle) {
     // Aggressive attack / overtake discharge
     const dischargeDelta = rand(3.2, 5.8);
     _ers = clamp(_ers - dischargeDelta, 6, 100);
     _energyDeployed = clamp(_energyDeployed + rand(0.18, 0.35), 0, BUDGET_MJ);
-  } else if (_lastAction === 'RECOVER' || isBraking || _speed < 245) {
+  } else if (_lastAction === 'RECOVER' || isBraking) {
     // Deceleration / Kinetic braking regeneration (MGU-K 120 kW + MGU-H heat harvest)
     const regenDelta = rand(2.8, 5.2);
     _ers = clamp(_ers + regenDelta, 6, 98);
@@ -84,59 +90,28 @@ export function generateRaceState(): RaceState {
     _energyDeployed = clamp(_energyDeployed + rand(0.01, 0.04), 0, BUDGET_MJ);
   }
 
-  // Drift gaps and speeds realistically along racing line
-  _gapAhead = clamp(_gapAhead + rand(-0.15, 0.15), 0.1, 4.0);
+  // Drift gaps realistically along racing line
+  _gapAhead = clamp(_gapAhead + rand(-0.12, 0.12), 0.1, 4.0);
   _gapBehind = clamp(_gapBehind + rand(-0.1, 0.1), 0.05, 5.0);
-  _speed = clamp(_speed + rand(-8, 8), 240, 335);
 
   const dischargeKw = (_lastAction === 'OVERTAKE' || isHighThrottle) ? 120.0 : isBraking ? 0.0 : 42.5;
   const rechargeKw = (_lastAction === 'RECOVER' || isBraking) ? 120.0 : isHighThrottle ? 0.0 : 35.0;
   const tyreDeg = clamp(parseFloat(((_lap * 0.42) + 5.8).toFixed(1)), 5.0, 95.0);
   const efficiency = parseFloat((94.2 + rand(-0.4, 0.4)).toFixed(1));
 
-  // Real-world Formula 1 1.6L V6 Turbo Hybrid gear & RPM calculation
-  // F1 gear ratios (8-speed seamless shift transmission):
-  // Gear 1: 0–95 km/h, Gear 2: 75–125 km/h, Gear 3: 115–165 km/h, Gear 4: 155–208 km/h,
-  // Gear 5: 198–252 km/h, Gear 6: 242–292 km/h, Gear 7: 282–324 km/h, Gear 8: 314–355+ km/h
-  let currentGear = 7;
-  let gearMinV = 282;
-  let gearMaxV = 324;
-  if (_speed < 95) {
-    currentGear = 1; gearMinV = 0; gearMaxV = 95;
-  } else if (_speed < 125) {
-    currentGear = 2; gearMinV = 75; gearMaxV = 125;
-  } else if (_speed < 165) {
-    currentGear = 3; gearMinV = 115; gearMaxV = 165;
-  } else if (_speed < 208) {
-    currentGear = 4; gearMinV = 155; gearMaxV = 208;
-  } else if (_speed < 252) {
-    currentGear = 5; gearMinV = 198; gearMaxV = 252;
-  } else if (_speed < 292) {
-    currentGear = 6; gearMinV = 242; gearMaxV = 292;
-  } else if (_speed < 324) {
-    currentGear = 7; gearMinV = 282; gearMaxV = 324;
-  } else {
-    currentGear = 8; gearMinV = 314; gearMaxV = 355;
-  }
-
-  // Real-world F1 operating RPM: 9,600 RPM to 12,850 RPM (FIA 100 kg/h fuel limit at 10,500; peak shift at 12,850 RPM)
-  const gearSpan = Math.max(1, gearMaxV - gearMinV);
-  const gearRatio = clamp((_speed - gearMinV) / gearSpan, 0, 1);
-  const engineRpm = Math.round(9600 + gearRatio * (12850 - 9600));
-
   return {
     lap: _lap,
     total_laps: TOTAL_LAPS,
     position: _pos,
-    speed_kph: Math.round(_speed),
+    speed_kph: tel.speed,
     ers_pct: Math.round(_ers),
     gap_ahead_s: parseFloat(_gapAhead.toFixed(2)),
     gap_behind_s: parseFloat(_gapBehind.toFixed(2)),
     energy_deployed_mj: parseFloat(_energyDeployed.toFixed(2)),
     deployment_budget_mj: BUDGET_MJ,
     timestamp: Date.now(),
-    engine_rpm: engineRpm,
-    gear: currentGear,
+    engine_rpm: tel.rpm,
+    gear: tel.gear,
     tyre_deg_pct: tyreDeg,
     battery_soc_pct: Math.round(_ers),
     efficiency_pct: efficiency,
