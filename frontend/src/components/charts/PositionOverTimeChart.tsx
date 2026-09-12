@@ -27,7 +27,7 @@ function CustomTooltip({ active, payload, label }: {
   return (
     <div className="chart-tooltip">
       <p className="chart-tooltip__label">Lap {label}</p>
-      <p className="chart-tooltip__value" style={{ color: '#c084fc' }}>
+      <p className="chart-tooltip__value" style={{ color: 'var(--chart-purple, #c084fc)' }}>
         Position: <strong>P{payload[0].value}</strong>
       </p>
     </div>
@@ -50,7 +50,7 @@ export default function PositionOverTimeChart({ data, isLoading }: Props) {
         <span className="chart-title">Race Position</span>
         {data.length > 0 && (
           <span className="chart-latest">
-            Current: <strong style={{ color: '#c084fc' }}>
+            Current: <strong style={{ color: 'var(--chart-purple, #c084fc)' }}>
               P{data[data.length - 1].position}
             </strong>
           </span>
@@ -76,10 +76,10 @@ export default function PositionOverTimeChart({ data, isLoading }: Props) {
           <Line
             type="stepAfter"
             dataKey="position"
-            stroke="#c084fc"
+            stroke="var(--chart-purple, #c084fc)"
             strokeWidth={2}
             dot={false}
-            activeDot={{ r: 4, fill: '#c084fc' }}
+            activeDot={{ r: 4, fill: 'var(--chart-purple, #c084fc)' }}
             isAnimationActive={false}
           />
         </LineChart>

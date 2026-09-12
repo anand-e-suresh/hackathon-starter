@@ -6,9 +6,10 @@
  * While backend is not connected, mock data is used (clearly labeled).
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Activity, Cpu, GitCompare, AlertCircle, Info } from 'lucide-react';
+import { Activity, Cpu, GitCompare, AlertCircle, Info, Sun, Moon } from 'lucide-react';
 
 import { useBackendStatus } from './hooks/useBackendStatus';
+import { useTheme } from './hooks/useTheme';
 import RaceStateBar from './components/RaceStateBar';
 import DecisionCard from './components/DecisionCard';
 import RuleComplianceBadge from './components/RuleComplianceBadge';
@@ -33,6 +34,9 @@ import './App.css';
 type SimStatus = 'idle' | 'running' | 'paused' | 'complete';
 
 export default function App() {
+  // Theme
+  const { theme, toggleTheme } = useTheme();
+
   // Backend health
   const backendStatus = useBackendStatus();
 
@@ -209,6 +213,19 @@ export default function App() {
               ? `BACKEND ONLINE ${backendStatus.latency}ms`
               : 'BACKEND OFFLINE'}
           </div>
+
+          {/* Theme toggle */}
+          <button
+            type="button"
+            id="theme-toggle"
+            className="theme-toggle-btn"
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          >
+            {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
+            <span className="theme-toggle-btn__text">{theme === 'dark' ? 'LIGHT' : 'DARK'}</span>
+          </button>
         </div>
       </header>
 

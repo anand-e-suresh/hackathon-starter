@@ -43,6 +43,11 @@
   --recover-glow:   rgba(61, 214, 140, 0.3);
   --recover-text:   #3dd68c;
 
+  /* Accent button text and hover */
+  --accent-text:    #080c10;
+  --accent-hover:   #00bce8;
+  --chart-purple:   #c084fc;
+
   /* Status */
   --success:        #3dd68c;
   --warning:        #f5c842;
@@ -67,6 +72,62 @@
   /* Transition */
   --transition: 0.2s ease;
   --transition-slow: 0.4s ease;
+}
+
+/* Light Mode Overrides */
+[data-theme="light"] {
+  /* Palette — motorsport engineering daylight telemetry */
+  --bg-base:        #f0f4f8;
+  --bg-surface:     #f8fafc;
+  --bg-card:        #ffffff;
+  --bg-card-hover:  #f1f5f9;
+  --bg-elevated:    #ffffff;
+
+  /* Borders */
+  --border:         #cbd5e1;
+  --border-subtle:  #e2e8f0;
+  --border-bright:  #94a3b8;
+
+  /* Text */
+  --text-primary:   #0f172a;
+  --text-secondary: #334155;
+  --text-muted:     #64748b;
+  --text-dim:       #94a3b8;
+
+  /* Accent — sky-600 */
+  --accent:         #0284c7;
+  --accent-dim:     rgba(2, 132, 199, 0.08);
+  --accent-glow:    rgba(2, 132, 199, 0.2);
+  --accent-text:    #ffffff;
+  --accent-hover:   #0369a1;
+  --chart-purple:   #7c3aed;
+
+  /* Action colors with calibrated contrast for white backgrounds */
+  --overtake:       #dc2626;
+  --overtake-dim:   rgba(220, 38, 38, 0.08);
+  --overtake-glow:  rgba(220, 38, 38, 0.2);
+  --overtake-text:  #b91c1c;
+
+  --hold:           #d97706;
+  --hold-dim:       rgba(217, 119, 6, 0.08);
+  --hold-glow:      rgba(217, 119, 6, 0.2);
+  --hold-text:      #b45309;
+
+  --recover:        #059669;
+  --recover-dim:    rgba(5, 150, 105, 0.08);
+  --recover-glow:   rgba(5, 150, 105, 0.2);
+  --recover-text:   #047857;
+
+  /* Status */
+  --success:        #059669;
+  --warning:        #d97706;
+  --danger:         #dc2626;
+  --info:           #0284c7;
+
+  /* Shadows */
+  --shadow-sm:  0 1px 3px rgba(15, 23, 42, 0.08);
+  --shadow-md:  0 4px 14px rgba(15, 23, 42, 0.09);
+  --shadow-lg:  0 8px 28px rgba(15, 23, 42, 0.12);
 }
 
 /* ---- Reset ---- */
