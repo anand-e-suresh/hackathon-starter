@@ -131,6 +131,38 @@ def _adapt_state_for_model(state: dict) -> dict:
     # Optional defaults
     adapted['grid_energy_condition'] = 0.5
     
+    # 6. Tyres and Weather
+    compound_map = {'SOFT': 3.0, 'MEDIUM': 2.0, 'HARD': 1.0, 'UNKNOWN': 2.0, 'INTERMEDIATE': 4.0, 'WET': 5.0}
+    adapted['Tyre_Compound_Encoded'] = compound_map.get(state.get('Compound', 'UNKNOWN'), 2.0)
+    
+    # Ensure numerical types for proxies
+    tyre_life = float(state.get('TyreLife', 1.0))
+    adapted['Tyre_Degradation_Proxy'] = tyre_life / adapted['Tyre_Compound_Encoded']
+    
+    adapted['Track_Temperature'] = float(state.get('TrackTemp', 35.0))
+    # Is_Raining is derived from Rainfall boolean/numeric
+    rainfall = state.get('Rainfall', False)
+    adapted['Is_Raining'] = 1.0 if rainfall else 0.0
+    
+    # Track Position Normalized
+    distance = float(state.get('Distance', 0.0))
+    # Hardcode max distance for Monza ~5793m if not provided
+    max_dist = 5793.0
+    adapted['Track_Position_Normalized'] = distance / max_dist
+    
+    # 7. Opponent Advantage
+    opp_compound = compound_map.get(state.get('Opponent_Compound', 'UNKNOWN'), 2.0)
+    opp_tyre_life = float(state.get('Opponent_TyreLife', 1.0))
+    
+    opp_tyre_deg = opp_tyre_life / opp_compound
+    adapted['Opponent_Tyre_Advantage'] = opp_tyre_deg - adapted['Tyre_Degradation_Proxy']
+    
+    # Opponent Speed
+    adapted['Opponent_Speed'] = adapted['speed'] - adapted['closing_speed']
+    
+    # Modify Attack Score to consider Opponent Tyre Advantage
+    adapted['attack_opportunity_score'] += (0.3 if adapted['Opponent_Tyre_Advantage'] > 0 else 0.0)
+    
     return adapted
 
 def _estimate_energy_cost(action: str, state: dict) -> float:

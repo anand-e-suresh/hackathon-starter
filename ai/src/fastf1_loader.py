@@ -25,7 +25,7 @@ def load_session_telemetry(year: int, event: str, session_type: str) -> pd.DataF
     logger.info(f"Loading FastF1 session: {year} {event} {session_type}")
     try:
         session = fastf1.get_session(year, event, session_type)
-        session.load(telemetry=True, laps=True, weather=False, messages=False)
+        session.load(telemetry=True, laps=True, weather=True, messages=False)
     except Exception as e:
         logger.error(f"Failed to load session {year} {event} {session_type}: {e}")
         raise
@@ -68,6 +68,8 @@ def load_session_telemetry(year: int, event: str, session_type: str) -> pd.DataF
                 lap_telem['Sector2Time'] = lap['Sector2Time']
                 lap_telem['Sector3Time'] = lap['Sector3Time']
                 lap_telem['LapTime'] = lap['LapTime']
+                lap_telem['Compound'] = lap['Compound']
+                lap_telem['TyreLife'] = lap['TyreLife']
                 driver_telem_list.append(lap_telem)
                 
             if driver_telem_list:
@@ -80,4 +82,59 @@ def load_session_telemetry(year: int, event: str, session_type: str) -> pd.DataF
     if not all_telemetry:
         raise ValueError("No telemetry data could be loaded for the session.")
         
-    return pd.concat(all_telemetry, ignore_index=True)
+    final_df = pd.concat(all_telemetry, ignore_index=True)
+    
+    # Merge weather data
+    if hasattr(session, 'weather_data') and not session.weather_data.empty:
+        weather_df = session.weather_data[['Time', 'AirTemp', 'TrackTemp', 'Rainfall']].copy()
+        weather_df = weather_df.rename(columns={'Time': 'SessionTime'})
+        # Ensure sorted for merge_asof
+        final_df = final_df.sort_values('SessionTime')
+        weather_df = weather_df.sort_values('SessionTime')
+        final_df = pd.merge_asof(final_df, weather_df, on='SessionTime', direction='backward')
+    else:
+        final_df['AirTemp'] = 25.0
+        final_df['TrackTemp'] = 35.0
+        final_df['Rainfall'] = False
+
+    # Map Opponent Tyre Data
+    # Create a lookup mapping from (Driver, LapNumber) -> (Compound, TyreLife)
+    # We use drop_duplicates because there are many telemetry rows per lap
+    tyre_lookup = final_df[['Driver', 'LapNumber', 'Compound', 'TyreLife']].drop_duplicates().set_index(['Driver', 'LapNumber'])
+    
+    def get_opponent_compound(row):
+        driver_ahead = row['DriverAhead']
+        if pd.isna(driver_ahead) or driver_ahead == '':
+            return 'UNKNOWN'
+        # Sometimes DriverAhead is a float string like '55.0' or just '55'
+        # Ensure it's a string matching the driver list format
+        if isinstance(driver_ahead, float):
+            driver_ahead = str(int(driver_ahead))
+        else:
+            driver_ahead = str(driver_ahead).replace('.0', '')
+            
+        try:
+            return tyre_lookup.loc[(driver_ahead, row['LapNumber']), 'Compound']
+        except KeyError:
+            return 'UNKNOWN'
+            
+    def get_opponent_tyrelife(row):
+        driver_ahead = row['DriverAhead']
+        if pd.isna(driver_ahead) or driver_ahead == '':
+            return 0.0
+            
+        if isinstance(driver_ahead, float):
+            driver_ahead = str(int(driver_ahead))
+        else:
+            driver_ahead = str(driver_ahead).replace('.0', '')
+            
+        try:
+            return tyre_lookup.loc[(driver_ahead, row['LapNumber']), 'TyreLife']
+        except KeyError:
+            return 0.0
+
+    logger.info("Mapping opponent tyre data...")
+    final_df['Opponent_Compound'] = final_df.apply(get_opponent_compound, axis=1)
+    final_df['Opponent_TyreLife'] = final_df.apply(get_opponent_tyrelife, axis=1)
+
+    return final_df
