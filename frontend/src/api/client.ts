@@ -33,6 +33,8 @@ export interface RaceState {
   efficiency_pct?: number;
   discharge_rate_kw?: number;
   recharge_rate_kw?: number;
+  battery_percent?: number;
+  tire_wear_percent?: number;
 }
 
 export interface PredictResponse {
