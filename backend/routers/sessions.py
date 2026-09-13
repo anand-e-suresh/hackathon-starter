@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, status, HTTPException
 from pydantic import BaseModel
 
-from ...scripts.generate_telemetry_csv import generate
+# from ...scripts.generate_telemetry_csv import generate
 from state_store import RaceStateStore
 
 logger = logging.getLogger(__name__)
@@ -35,15 +35,15 @@ async def load_session(request: LoadSessionRequest = LoadSessionRequest()):
     
     try:
         # Run the heavy FastF1 data ingestion in a separate thread so we don't block Uvicorn
-        out_path = await asyncio.to_thread(
-            generate,
-            year=request.year,
-            event=request.event,
-            session=request.session,
-            driver=request.driver,
-            lap_number=request.lap_number,
-            out_filename=out_filename
-        )
+        # out_path = await asyncio.to_thread(
+        #     generate,
+        #     year=request.year,
+        #     event=request.event,
+        #     session=request.session,
+        #     driver=request.driver,
+        #     lap_number=request.lap_number,
+        #     out_filename=out_filename
+        # )
         
         # Now hot-reload the simulator memory
         simulator = RaceStateStore.get_simulator()
