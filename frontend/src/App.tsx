@@ -6,7 +6,7 @@
  * While backend is not connected, mock data is used (clearly labeled).
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Activity, GitCompare, AlertCircle, Info, Sun, Moon, Tv, LayoutTemplate, SlidersHorizontal } from 'lucide-react';
+import { Activity, GitCompare, AlertCircle, Info, Sun, Moon, Tv, LayoutTemplate, SlidersHorizontal, Box, Flag } from 'lucide-react';
 
 import { useBackendStatus } from './hooks/useBackendStatus';
 import { useTheme } from './hooks/useTheme';
@@ -15,6 +15,7 @@ import DecisionCard from './components/DecisionCard';
 import RuleComplianceBadge from './components/RuleComplianceBadge';
 import ComparisonView from './components/ComparisonView';
 import TrackSimulation from './components/TrackSimulation';
+import F1Car3DViewer from './components/F1Car3DViewer';
 import EnergyOverTimeChart from './components/charts/EnergyOverTimeChart';
 import PositionOverTimeChart from './components/charts/PositionOverTimeChart';
 import GapChart from './components/charts/GapChart';
@@ -55,6 +56,9 @@ export default function App() {
     setUiMode(mode);
     localStorage.setItem('sazi-ui-mode', mode);
   };
+
+  // Dual-page navigation: Primary (3D X-Ray Explorer) vs Secondary (Race Strategy & Simulation)
+  const [activePage, setActivePage] = useState<'3d-explorer' | 'race-sim'>('3d-explorer');
 
   // Simulation state
   const [simStatus, setSimStatus] = useState<SimStatus>('idle');
@@ -208,6 +212,36 @@ export default function App() {
         </div>
 
         <div className="app__header-center">
+          {/* Dual-Page Navigation Switcher */}
+          <div className="app__page-nav" role="tablist" aria-label="Page Navigation">
+            <button
+              type="button"
+              id="btn-page-3d"
+              className={`page-nav-btn ${activePage === '3d-explorer' ? 'page-nav-btn--active' : ''}`}
+              onClick={() => setActivePage('3d-explorer')}
+              role="tab"
+              aria-selected={activePage === '3d-explorer'}
+              title="Primary Page: Transparent 3D F1 Car X-Ray (ERS, Cooling & Tyres)"
+            >
+              <Box size={13} />
+              <span className="page-nav-text">3D CAR X-RAY</span>
+              <span className="page-nav-badge">PAGE 1</span>
+            </button>
+            <button
+              type="button"
+              id="btn-page-sim"
+              className={`page-nav-btn ${activePage === 'race-sim' ? 'page-nav-btn--active' : ''}`}
+              onClick={() => setActivePage('race-sim')}
+              role="tab"
+              aria-selected={activePage === 'race-sim'}
+              title="Secondary Page: Grand Prix Circuit Simulation & Strategy Command Center"
+            >
+              <Flag size={13} />
+              <span className="page-nav-text">TRACK & STRATEGY</span>
+              <span className="page-nav-badge">PAGE 2</span>
+            </button>
+          </div>
+
           <div className={`app__sim-status ${statusClass[simStatus]}`}
                role="status" aria-live="polite">
             {statusLabel[simStatus]}
@@ -345,55 +379,66 @@ export default function App() {
       {/* ── Main content grid ──────────────────────────────────────── */}
       <main className="app__main" role="main">
 
-        {/* 2D Live Track Simulation */}
-        {showTrack && (
-          <section className="app__row app__row--track" aria-label="2D Live Circuit Simulation">
-            <TrackSimulation
-              raceState={raceState}
-              prediction={prediction}
-              isRunning={simStatus === 'running'}
-              isSimpleMode={uiMode === 'simple'}
-              onToggleUiMode={() => handleSetUiMode('detailed')}
-            />
+        {/* ── PAGE 1 (PRIMARY): 3D F1 Car X-Ray Explorer (ERS, Cooling & Tyres) ── */}
+        {activePage === '3d-explorer' && (
+          <section className="app__row app__row--3d" aria-label="3D F1 Car X-Ray Telemetry Explorer">
+            <F1Car3DViewer raceState={raceState} prediction={prediction} />
           </section>
         )}
 
-        {/* Row 1: Decision + Compliance */}
-        <section className="app__row app__row--top" aria-label="AI decision and compliance">
-          <div className="app__col app__col--decision">
-            <DecisionCard prediction={prediction} isLoading={isPredicting} />
-          </div>
-          <div className="app__col app__col--compliance">
-            <RuleComplianceBadge prediction={prediction} />
-          </div>
-        </section>
+        {/* ── PAGE 2 (SECONDARY): Grand Prix Circuit Simulation & Strategy Command ── */}
+        {activePage === 'race-sim' && (
+          <>
+            {/* 2D Live Track Simulation */}
+            {showTrack && (
+              <section className="app__row app__row--track" aria-label="2D Live Circuit Simulation">
+                <TrackSimulation
+                  raceState={raceState}
+                  prediction={prediction}
+                  isRunning={simStatus === 'running'}
+                  isSimpleMode={uiMode === 'simple'}
+                  onToggleUiMode={() => handleSetUiMode('detailed')}
+                />
+              </section>
+            )}
 
-        {/* Row 2: Energy chart (full width) */}
-        <section className="app__row" aria-label="Energy telemetry">
-          <EnergyOverTimeChart data={telemetry} isLoading={false} />
-        </section>
+            {/* Row 1: Decision + Compliance */}
+            <section className="app__row app__row--top" aria-label="AI decision and compliance">
+              <div className="app__col app__col--decision">
+                <DecisionCard prediction={prediction} isLoading={isPredicting} />
+              </div>
+              <div className="app__col app__col--compliance">
+                <RuleComplianceBadge prediction={prediction} />
+              </div>
+            </section>
 
-        {/* Row 3: Position + Gap */}
-        <section className="app__row app__row--two-col" aria-label="Position and gap charts">
-          <PositionOverTimeChart data={telemetry} />
-          <GapChart data={telemetry} />
-        </section>
+            {/* Row 2: Energy chart (full width) */}
+            <section className="app__row" aria-label="Energy telemetry">
+              <EnergyOverTimeChart data={telemetry} isLoading={false} />
+            </section>
 
-        {/* Row 4: Decision history */}
-        <section className="app__row" aria-label="Decision history">
-          <DecisionHistoryChart decisions={decisions} />
-        </section>
+            {/* Row 3: Position + Gap */}
+            <section className="app__row app__row--two-col" aria-label="Position and gap charts">
+              <PositionOverTimeChart data={telemetry} />
+              <GapChart data={telemetry} />
+            </section>
 
-        {/* Row 5: Comparison */}
-        <section className="app__row" aria-label="ML vs baseline comparison">
-          <ComparisonView
-            comparison={comparison}
-            isLoading={isComparing}
-            onRunComparison={handleRunComparison}
-            canRun={!isComparing}
-          />
-        </section>
+            {/* Row 4: Decision history */}
+            <section className="app__row" aria-label="Decision history">
+              <DecisionHistoryChart decisions={decisions} />
+            </section>
 
+            {/* Row 5: Comparison */}
+            <section className="app__row" aria-label="ML vs baseline comparison">
+              <ComparisonView
+                comparison={comparison}
+                isLoading={isComparing}
+                onRunComparison={handleRunComparison}
+                canRun={!isComparing}
+              />
+            </section>
+          </>
+        )}
       </main>
 
       {/* ── Footer ─────────────────────────────────────────────────── */}
