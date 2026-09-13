@@ -1,2 +1,11 @@
 ./frontend/.env
 ./frontend/node_modules/
+
+# Backend ignores
+backend/.env
+.env
+__pycache__/
+*.pyc
+backend/venv/
+.venv/
+ai/venv/

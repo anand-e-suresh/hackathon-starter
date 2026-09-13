@@ -1,0 +1,26 @@
+# Python caching
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# FastF1 data cache (can be very large, should not be committed)
+data/cache/
+
+# Trained ML models
+models/*.joblib
+models/*.pkl
+models/*.pt
+models/*.h5
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
