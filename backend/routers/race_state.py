@@ -5,7 +5,7 @@ Provides real-time race state metrics for live dashboard polling.
 
 from typing import Dict, Any
 from fastapi import APIRouter, status
-from backend.state_store import RaceStateStore
+from state_store import RaceStateStore
 
 router = APIRouter(tags=["Race State"])
 

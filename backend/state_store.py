@@ -1,5 +1,5 @@
 from typing import Optional
-from backend.simulator import RaceSimulator
+from simulator import RaceSimulator
 
 class RaceStateStore:
     _active_simulator: Optional[RaceSimulator] = None

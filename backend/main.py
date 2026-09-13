@@ -5,7 +5,7 @@ AI Motorsport Intelligence Engine
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routers import predict, simulate, telemetry, race_state, results, simulation_ws, sessions
+from routers import predict, simulate, telemetry, race_state, results, simulation_ws, sessions
 
 app = FastAPI(
     title="AI Motorsport Intelligence API",

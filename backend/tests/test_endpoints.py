@@ -4,7 +4,7 @@ Integration tests for all REST API endpoints:
 """
 
 from fastapi.testclient import TestClient
-from backend.main import app
+from main import app
 
 client = TestClient(app)
 

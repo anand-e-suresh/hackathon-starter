@@ -1,6 +1,6 @@
 """Unit tests for FIA Technical Rule Compliance Engine (backend/rules.py)."""
-from backend.schemas import ActionType
-from backend.rules import check_compliance, MAX_DEPLOYMENT_PER_LAP_MJ, MAX_CONTINUOUS_DEPLOYMENT_SECONDS
+from schemas import ActionType
+from rules import check_compliance, MAX_DEPLOYMENT_PER_LAP_MJ, MAX_CONTINUOUS_DEPLOYMENT_SECONDS
 
 
 def test_hold_and_recover_always_compliant():

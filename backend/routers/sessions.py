@@ -4,7 +4,7 @@ from fastapi import APIRouter, status, HTTPException
 from pydantic import BaseModel
 
 from scripts.generate_telemetry_csv import generate
-from backend.state_store import RaceStateStore
+from state_store import RaceStateStore
 
 logger = logging.getLogger(__name__)
 

@@ -5,8 +5,8 @@ Returns aggregated race strategy evaluation metrics comparing ML Strategy vs Bas
 
 from typing import Dict, Any
 from fastapi import APIRouter, status
-from backend.schemas import StrategyMetrics
-from backend.state_store import RaceStateStore
+from schemas import StrategyMetrics
+from state_store import RaceStateStore
 
 router = APIRouter(tags=["Results & Metrics"])
 

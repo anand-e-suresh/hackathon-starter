@@ -10,7 +10,7 @@ Regulations Enforced (Simplified Engineering Abstraction):
 
 import os
 from typing import Dict, Any, Optional
-from backend.schemas import ActionType, RuleCheckResult
+from schemas import ActionType, RuleCheckResult
 
 # Configurable regulatory limits
 MAX_DEPLOYMENT_PER_LAP_MJ: float = float(os.getenv("MAX_DEPLOYMENT_PER_LAP_MJ", "4.0"))

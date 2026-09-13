@@ -5,8 +5,8 @@ Verifies that energy levels strictly adhere to physical bounds:
 """
 
 import pytest
-from backend.schemas import ActionType
-from backend.energy_model import (
+from schemas import ActionType
+from energy_model import (
     update_energy,
     mj_to_percentage,
     percentage_to_mj,

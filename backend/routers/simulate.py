@@ -4,9 +4,9 @@ Triggers multi-lap F1 race simulations comparing ML strategy against baseline.
 """
 
 from fastapi import APIRouter, status
-from backend.schemas import SimulateRequest, SimulateResponse
-from backend.simulator import RaceSimulator
-from backend.state_store import RaceStateStore
+from schemas import SimulateRequest, SimulateResponse
+from simulator import RaceSimulator
+from state_store import RaceStateStore
 
 router = APIRouter(tags=["Simulation"])
 

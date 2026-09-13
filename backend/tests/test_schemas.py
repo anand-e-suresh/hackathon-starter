@@ -1,6 +1,6 @@
 """Unit tests for Pydantic schemas in backend/schemas.py"""
 import pytest
-from backend.schemas import (
+from schemas import (
     ActionType,
     TelemetryState,
     DecisionResponse,

@@ -6,8 +6,8 @@ Supports both ML strategy recommendations and naive baseline evaluation.
 
 import time
 from fastapi import APIRouter, Query, status
-from backend.schemas import TelemetryState, DecisionResponse, ActionType
-from backend.ml_adapter import get_decision
+from schemas import TelemetryState, DecisionResponse, ActionType
+from ml_adapter import get_decision
 
 router = APIRouter(tags=["Decision Engine"])
 

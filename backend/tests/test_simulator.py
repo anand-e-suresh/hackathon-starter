@@ -1,6 +1,6 @@
 """Unit tests for F1 Race Simulator (backend/simulator.py)."""
-from backend.schemas import SimulateRequest
-from backend.simulator import RaceSimulator
+from schemas import SimulateRequest
+from simulator import RaceSimulator
 
 
 def test_race_simulator_run_basic():

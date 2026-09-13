@@ -6,7 +6,7 @@ import os
 import pandas as pd
 from typing import List, Dict, Any
 
-from backend.schemas import (
+from schemas import (
     ActionType,
     DecisionResponse,
     SimulateRequest,
@@ -17,15 +17,15 @@ from backend.schemas import (
     SimulationUpdateResponse,
     SimulationCarState
 )
-from backend.ml_adapter import get_decision
-from backend.energy_model import (
+from ml_adapter import get_decision
+from energy_model import (
     update_energy,
     percentage_to_mj,
     mj_to_percentage,
     calculate_action_energy_delta,
     MAX_BATTERY_CAPACITY_MJ
 )
-from backend.rules import check_compliance, MAX_DEPLOYMENT_PER_LAP_MJ
+from rules import check_compliance, MAX_DEPLOYMENT_PER_LAP_MJ
 
 logger = logging.getLogger(__name__)
 

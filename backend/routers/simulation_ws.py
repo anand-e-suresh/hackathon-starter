@@ -3,8 +3,8 @@ import logging
 from typing import List
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from backend.state_store import RaceStateStore
-from backend.schemas import SimulationControlCommand, SimulationStatusResponse
+from state_store import RaceStateStore
+from schemas import SimulationControlCommand, SimulationStatusResponse
 
 logger = logging.getLogger(__name__)
 

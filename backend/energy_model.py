@@ -11,7 +11,7 @@ micro-level electrochemical cell degradation or thermal thermodynamics.
 """
 
 from typing import Tuple
-from backend.schemas import ActionType
+from schemas import ActionType
 
 # Constants (FIA-inspired ERS specifications)
 MAX_BATTERY_CAPACITY_MJ: float = 4.0     # Standard F1 Energy Store (ES) capacity: 4.0 MJ

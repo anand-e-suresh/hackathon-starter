@@ -4,8 +4,8 @@ Provides real-time synthetic F1 telemetry snapshots for dashboard gauges and cha
 """
 
 from fastapi import APIRouter, status
-from backend.schemas import TelemetryState
-from backend.state_store import RaceStateStore
+from schemas import TelemetryState
+from state_store import RaceStateStore
 
 router = APIRouter(tags=["Telemetry"])
 

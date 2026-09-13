@@ -1,7 +1,7 @@
 """Unit tests for FastAPI endpoints: /health, /, and /predict"""
 import time
 from fastapi.testclient import TestClient
-from backend.main import app
+from main import app
 
 client = TestClient(app)
 
