@@ -63,6 +63,8 @@ class SimulationCarState(BaseModel):
     speed: float
     gap_ahead: float
     gap_behind: float
+    x: float = Field(0.0, description="Spatial X coordinate")
+    y: float = Field(0.0, description="Spatial Y coordinate")
     battery_pct: float
     budget_remaining_mj: float
 

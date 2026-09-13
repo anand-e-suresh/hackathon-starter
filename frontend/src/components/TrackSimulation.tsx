@@ -135,7 +135,7 @@ export default function TrackSimulation({
           // Evaluate instantaneous speed from the 18-turn track profile
           const isDrs = (prev > 0.88 || prev < 0.14) || (prev >= 0.34 && prev <= 0.40);
           const tel = getSilverstoneTelemetry(prev, isDrs);
-          
+
           // Boost speed slightly if in aggressive engine mode STRAT 1
           const stratMultiplier = engineMode === 'STRAT 1' ? 1.04 : engineMode === 'STRAT 12' ? 0.95 : 1.0;
           const currentSpeed = tel.speed * stratMultiplier;
@@ -292,14 +292,14 @@ export default function TrackSimulation({
   const dischargeRateKw = action === 'OVERTAKE' || isHighThrottle
     ? (raceState?.discharge_rate_kw ?? 120.0)
     : isBraking
-    ? 0.0
-    : 38.5;
+      ? 0.0
+      : 38.5;
 
   const rechargeRateKw = action === 'RECOVER' || isBraking
     ? (raceState?.recharge_rate_kw ?? 120.0)
     : isHighThrottle
-    ? 0.0
-    : 32.0;
+      ? 0.0
+      : 32.0;
 
   const netPowerFlowKw = rechargeRateKw - dischargeRateKw; // Negative = Discharging, Positive = Recharging
 
@@ -403,20 +403,20 @@ export default function TrackSimulation({
               </div>
 
               {/* Tyre Degradation in Header */}
-              <div className="track-sim__hud-item">
+              {/* <div className="track-sim__hud-item">
                 <span className="track-sim__hud-label"><Disc size={9} /> TYRE DEG</span>
                 <span className="track-sim__hud-val mono" style={{ color: tyreDeg > 60 ? '#ef4444' : tyreDeg > 30 ? '#f59e0b' : '#10e782' }}>
                   {tyreDeg.toFixed(1)}% <small>(C3)</small>
                 </span>
-              </div>
+              </div> */}
 
               {/* Efficiency in Header */}
-              <div className="track-sim__hud-item">
+              {/* <div className="track-sim__hud-item">
                 <span className="track-sim__hud-label"><Cpu size={9} /> EFFICIENCY</span>
                 <span className="track-sim__hud-val mono" style={{ color: 'var(--accent)' }}>
                   {ersEfficiency.toFixed(1)}%
                 </span>
-              </div>
+              </div> */}
             </>
           )}
 
@@ -732,7 +732,7 @@ export default function TrackSimulation({
             {/* Car Ground-Effect Shadow */}
             <filter id="f1GroundShadow" x="-40%" y="-40%" width="180%" height="180%">
               <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
-              <feColorMatrix type="matrix" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.65 0"/>
+              <feColorMatrix type="matrix" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.65 0" />
               <feOffset dx="0" dy="3" />
               <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
             </filter>

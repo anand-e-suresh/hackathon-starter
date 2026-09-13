@@ -87,39 +87,6 @@ export default function RaceStateBar({ state, isRunning, isSimpleMode = false }:
           </span>
         </div>
 
-        <div className="rsb__divider" />
-
-        {/* SPEED */}
-        <div className="rsb__metric">
-          <span className="rsb__label">
-            <Gauge size={12} /> SPEED
-          </span>
-          <span className="rsb__value rsb__value--large">
-            {state.speed_kph}
-            <span className="rsb__unit">km/h</span>
-          </span>
-        </div>
-
-        <div className="rsb__divider" />
-
-        {/* BATTERY LEFT / ERS */}
-        <div className="rsb__metric">
-          <span className="rsb__label">
-            <BatteryMedium size={12} /> BATT LEFT
-          </span>
-          <div className="rsb__ers-group">
-            <span className={`rsb__value rsb__value--large rsb__ers rsb__ers--${ersClass}`}>
-              {batterySoc}% <small className="rsb__unit">{usableBatteryMj}MJ</small>
-            </span>
-            <div className="rsb__ers-bar">
-              <div
-                className={`rsb__ers-fill rsb__ers-fill--${ersClass}`}
-                style={{ width: `${batterySoc}%` }}
-              />
-            </div>
-          </div>
-        </div>
-
         {/* Detailed Telemetry Metrics (Hidden in Simple/User-Friendly Mode) */}
         {!isSimpleMode && (
           <>
@@ -139,7 +106,7 @@ export default function RaceStateBar({ state, isRunning, isSimpleMode = false }:
             <div className="rsb__divider" />
 
             {/* TYRE DEGRADATION */}
-            <div className="rsb__metric">
+            {/* <div className="rsb__metric">
               <span className="rsb__label">
                 <Disc size={12} /> TYRE DEG
               </span>
@@ -154,46 +121,26 @@ export default function RaceStateBar({ state, isRunning, isSimpleMode = false }:
                   />
                 </div>
               </div>
-            </div>
+            </div> */}
 
             <div className="rsb__divider" />
 
             {/* EFFICIENCY */}
-            <div className="rsb__metric">
+            {/* <div className="rsb__metric">
               <span className="rsb__label">
                 <Cpu size={12} /> EFFICIENCY
               </span>
               <span className="rsb__value rsb__value--large" style={{ color: 'var(--accent)' }}>
                 {efficiency.toFixed(1)}%
               </span>
-            </div>
+            </div> */}
           </>
         )}
 
-        <div className="rsb__divider" />
 
-        {/* GAP AHEAD */}
-        <div className="rsb__metric">
-          <span className="rsb__label">GAP AHEAD</span>
-          <span className={`rsb__value rsb__value--large ${gapAheadClass}`}>
-            +{state.gap_ahead_s.toFixed(2)}s
-          </span>
-        </div>
-
-        <div className="rsb__divider" />
-
-        {/* GAP BEHIND */}
-        <div className="rsb__metric">
-          <span className="rsb__label">GAP BEHIND</span>
-          <span className="rsb__value rsb__value--large">
-            -{state.gap_behind_s.toFixed(2)}s
-          </span>
-        </div>
-
-        <div className="rsb__divider" />
 
         {/* RACE PROGRESS */}
-        <div className="rsb__metric rsb__metric--wide">
+        {/* <div className="rsb__metric rsb__metric--wide">
           <span className="rsb__label">RACE PROGRESS</span>
           <div className="rsb__progress-bar">
             <div
@@ -202,7 +149,7 @@ export default function RaceStateBar({ state, isRunning, isSimpleMode = false }:
             />
             <span className="rsb__progress-pct">{Math.round(progress)}%</span>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Status dot */}

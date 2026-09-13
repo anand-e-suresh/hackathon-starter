@@ -22,6 +22,8 @@ export interface RaceState {
   ers_pct: number;          // 0–100
   gap_ahead_s: number;
   gap_behind_s: number;
+  x?: number;
+  y?: number;
   energy_deployed_mj: number;
   deployment_budget_mj: number;
   timestamp: number;

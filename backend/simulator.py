@@ -46,6 +46,8 @@ class CarSimulationState:
         self.speed = 0.0
         self.throttle = 0.0
         self.brake = 0.0
+        self.x = 0.0
+        self.y = 0.0
         self.gear = 1
         self.drs_available = False
         self.drs_active = False
@@ -176,6 +178,8 @@ class RaceSimulator:
             speed=self.ml_car.speed if self.ml_car else 0.0,
             gap_ahead=self.ml_car.gap_ahead if self.ml_car else 0.0,
             gap_behind=self.ml_car.gap_behind if self.ml_car else 0.0,
+            x=self.ml_car.x if self.ml_car else 0.0,
+            y=self.ml_car.y if self.ml_car else 0.0,
             battery_pct=mj_to_percentage(self.ml_car.battery_mj) if self.ml_car else 0.0,
             budget_remaining_mj=self.ml_car.get_budget_remaining() if self.ml_car else 0.0
         )
@@ -186,6 +190,8 @@ class RaceSimulator:
             speed=self.baseline_car.speed if self.baseline_car else 0.0,
             gap_ahead=self.baseline_car.gap_ahead if self.baseline_car else 0.0,
             gap_behind=self.baseline_car.gap_behind if self.baseline_car else 0.0,
+            x=self.baseline_car.x if self.baseline_car else 0.0,
+            y=self.baseline_car.y if self.baseline_car else 0.0,
             battery_pct=mj_to_percentage(self.baseline_car.battery_mj) if self.baseline_car else 0.0,
             budget_remaining_mj=self.baseline_car.get_budget_remaining() if self.baseline_car else 0.0
         )
@@ -226,6 +232,20 @@ class RaceSimulator:
         throttle = track.get("Throttle", 100.0) / 100.0
         brake = track.get("Brake", 0.0) / 100.0
         gear = track.get("nGear", 7)
+        car.x = track.get("X", 0.0)
+        car.y = track.get("Y", 0.0)
+        
+        # Pull real gap from telemetry
+        distance_ahead = track.get("DistanceToDriverAhead")
+        if pd.isna(distance_ahead) or distance_ahead is None:
+            distance_ahead = 50.0
+        
+        # Ensure simulated delta is initialized
+        if not hasattr(car, "simulated_distance_ahead_delta_m"):
+            car.simulated_distance_ahead_delta_m = 0.0
+
+        speed_ms = max(0.1, base_speed / 3.6)
+        car.gap_ahead = float(distance_ahead) / speed_ms
         
         drs_available = (base_speed > 280) and (car.gap_ahead < 1.0)
         drs_active = drs_available and (throttle > 0.9)
@@ -237,6 +257,11 @@ class RaceSimulator:
         if pct > 0.66: sector = 3
         elif pct > 0.33: sector = 2
 
+        # Pull LapNumber from telemetry if available
+        lap_num = track.get("LapNumber")
+        if lap_num is not None and not pd.isna(lap_num):
+            self.current_lap = int(float(lap_num))
+            
         state_dict = {
             "speed": car.speed if car.speed > 0 else base_speed,
             "throttle": throttle,
@@ -304,14 +329,15 @@ class RaceSimulator:
 
         car.speed = max(0.0, base_speed + speed_delta)
         gap_closing_rate = (car.speed - base_speed) * 0.015
-        car.gap_ahead = max(0.05, car.gap_ahead - gap_closing_rate)
+        
+        # We strictly preserve the CSV gap_ahead for the frontend visualization as requested.
+        # We just gently update gap_behind based on speed.
         car.gap_behind = max(0.5, car.gap_behind + gap_closing_rate * 0.5)
 
         if car.gap_ahead <= 0.35 and effective_action == ActionType.OVERTAKE and car.battery_mj > 0.4:
             car.total_overtakes += 1
             car.positions_gained += 1
             car.position = max(1, car.position - 1)
-            car.gap_ahead = 2.4 + self.rng.uniform(-0.3, 0.4)
 
         car.current_lap_time += self.step_duration_s
         

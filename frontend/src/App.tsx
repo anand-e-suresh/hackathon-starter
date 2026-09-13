@@ -23,18 +23,11 @@ import DecisionHistoryChart from './components/charts/DecisionHistoryChart';
 
 import F1CarLogo from './components/F1CarLogo';
 import type { RaceState, PredictResponse, TelemetryPoint, DecisionPoint, ComparisonResponse } from './api/client';
-import {
-  generateRaceState,
-  generatePrediction,
-  generateComparison,
-  advanceLap,
-  resetMockState,
-} from './api/mockData';
+import { useSimulationSocket, type SimStatus } from './useSimulationSocket';
 
 import './App.css';
 
-// ─── Simulation state machine ─────────────────────────────────────────────────
-type SimStatus = 'idle' | 'running' | 'paused' | 'complete';
+
 
 export default function App() {
   // Theme
@@ -60,127 +53,70 @@ export default function App() {
   // Dual-page navigation: Primary (3D X-Ray Explorer) vs Secondary (Race Strategy & Simulation)
   const [activePage, setActivePage] = useState<'3d-explorer' | 'race-sim'>('3d-explorer');
 
-  // Simulation state
-  const [simStatus, setSimStatus] = useState<SimStatus>('idle');
-  const [raceState, setRaceState] = useState<RaceState | null>(null);
-  const [prediction, setPrediction] = useState<PredictResponse | null>(null);
-  const [telemetry, setTelemetry] = useState<TelemetryPoint[]>([]);
-  const [decisions, setDecisions] = useState<DecisionPoint[]>([]);
-  const [isPredicting, setIsPredicting] = useState(false);
+  // Simulation state from WebSocket
+  const {
+    isConnected,
+    status: simStatus,
+    raceState,
+    prediction,
+    telemetry,
+    decisions,
+    start: handleStartWS,
+    pause: handlePauseWS,
+    resume: handleResumeWS,
+    stop: handleStopWS,
+    reset: handleResetWS
+  } = useSimulationSocket('ws://localhost:8000/ws/simulation');
 
-  // Comparison
-  const [comparison, setComparison] = useState<ComparisonResponse | null>(null);
-  const [isComparing, setIsComparing] = useState(false);
-  const [compareError, setCompareError] = useState<string | null>(null);
-
-  // Polling interval ref
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const stepCountRef = useRef(0);
-  const MAX_STEPS = 57;
-
-  // ─── Simulation tick ───────────────────────────────────────────────────────
-  const tick = useCallback(() => {
-    if (stepCountRef.current >= MAX_STEPS) {
-      setSimStatus('complete');
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      return;
-    }
-
-    // Every 5 steps, advance the lap counter
-    if (stepCountRef.current % 5 === 0) advanceLap();
-    stepCountRef.current++;
-
-    const state = generateRaceState();
-    setRaceState(state);
-
-    setIsPredicting(true);
-    // Simulate async prediction (real backend call would go here)
-    setTimeout(() => {
-      const pred = generatePrediction(state);
-      setPrediction(pred);
-      setIsPredicting(false);
-
-      // Append to telemetry & decisions
-      setTelemetry((prev) => {
-        const point: TelemetryPoint = {
-          lap: state.lap,
-          step: stepCountRef.current,
-          ers_pct: state.ers_pct,
-          position: state.position,
-          gap_ahead_s: state.gap_ahead_s,
-          gap_behind_s: state.gap_behind_s,
-          speed_kph: state.speed_kph,
-          energy_deployed_mj: state.energy_deployed_mj,
-        };
-        return [...prev, point];
-      });
-
-      setDecisions((prev) => [
-        ...prev,
-        {
-          lap: state.lap,
-          step: stepCountRef.current,
-          action: pred.action,
-          confidence: pred.confidence,
-          rule_compliant: pred.rule_compliant,
-          adjusted: !pred.rule_compliant,
-        },
-      ]);
-    }, 80);
-  }, []);
+  // Session loader state
+  const [selectedSession, setSelectedSession] = useState("Monza, 2023, R, 1, 5.0");
+  const [isLoadingSession, setIsLoadingSession] = useState(false);
 
   // ─── Controls ──────────────────────────────────────────────────────────────
   const handleStart = useCallback(() => {
-    if (simStatus === 'running') return;
-    setSimStatus('running');
-
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = setInterval(tick, 1200);
-    tick(); // immediate first tick
-  }, [simStatus, tick]);
+    if (simStatus === 'paused') {
+      handleResumeWS();
+    } else {
+      handleStartWS();
+    }
+  }, [simStatus, handleStartWS, handleResumeWS]);
 
   const handlePause = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    setSimStatus('paused');
-  }, []);
+    handlePauseWS();
+  }, [handlePauseWS]);
 
   const handleReset = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    setSimStatus('idle');
-    setRaceState(null);
-    setPrediction(null);
-    setTelemetry([]);
-    setDecisions([]);
-    setComparison(null);
-    setCompareError(null);
-    setIsPredicting(false);
-    stepCountRef.current = 0;
-    resetMockState();
-  }, []);
+    handleResetWS();
+  }, [handleResetWS]);
 
-  const handleRunComparison = useCallback(async () => {
-    setIsComparing(true);
-    setCompareError(null);
+  const handleLoadSession = async () => {
+    setIsLoadingSession(true);
+    const [event, year, session, driver, lap_number] = selectedSession.split(', ').map(s => s.trim());
     try {
-      // Try real backend first, fall back to mock
-      // const result = await runComparison();
-      await new Promise((r) => setTimeout(r, 1200)); // simulate latency
-      const result = generateComparison();
-      setComparison(result);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      setCompareError(msg);
+      const response = await fetch('http://localhost:8000/load-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          year: parseInt(year),
+          event: event,
+          session: session,
+          driver: driver,
+          lap_number: parseFloat(lap_number)
+        })
+      });
+      if (!response.ok) {
+        console.error("Failed to load session");
+        alert("Failed to load session from FastF1");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Error loading session");
     } finally {
-      setIsComparing(false);
+      setIsLoadingSession(false);
     }
-  }, []);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
+  };
 
   // ─── Status labels ─────────────────────────────────────────────────────────
   const statusLabel: Record<SimStatus, string> = {
@@ -213,37 +149,9 @@ export default function App() {
 
         <div className="app__header-center">
           {/* Dual-Page Navigation Switcher */}
-          <div className="app__page-nav" role="tablist" aria-label="Page Navigation">
-            <button
-              type="button"
-              id="btn-page-3d"
-              className={`page-nav-btn ${activePage === '3d-explorer' ? 'page-nav-btn--active' : ''}`}
-              onClick={() => setActivePage('3d-explorer')}
-              role="tab"
-              aria-selected={activePage === '3d-explorer'}
-              title="Primary Page: Transparent 3D F1 Car X-Ray (ERS, Cooling & Tyres)"
-            >
-              <Box size={13} />
-              <span className="page-nav-text">3D CAR X-RAY</span>
-              <span className="page-nav-badge">PAGE 1</span>
-            </button>
-            <button
-              type="button"
-              id="btn-page-sim"
-              className={`page-nav-btn ${activePage === 'race-sim' ? 'page-nav-btn--active' : ''}`}
-              onClick={() => setActivePage('race-sim')}
-              role="tab"
-              aria-selected={activePage === 'race-sim'}
-              title="Secondary Page: Grand Prix Circuit Simulation & Strategy Command Center"
-            >
-              <Flag size={13} />
-              <span className="page-nav-text">TRACK & STRATEGY</span>
-              <span className="page-nav-badge">PAGE 2</span>
-            </button>
-          </div>
 
           <div className={`app__sim-status ${statusClass[simStatus]}`}
-               role="status" aria-live="polite">
+            role="status" aria-live="polite">
             {statusLabel[simStatus]}
           </div>
         </div>
@@ -288,8 +196,8 @@ export default function App() {
             {backendStatus.checking
               ? 'CHECKING…'
               : backendStatus.online
-              ? `BACKEND ONLINE ${backendStatus.latency}ms`
-              : 'BACKEND OFFLINE'}
+                ? `BACKEND ONLINE ${backendStatus.latency}ms`
+                : 'BACKEND OFFLINE'}
           </div>
 
           {/* Theme toggle */}
@@ -347,7 +255,7 @@ export default function App() {
           RESET
         </button>
 
-        <button
+        {/* <button
           id="btn-track-toggle"
           className={`ctrl-btn ctrl-btn--track ${showTrack ? 'ctrl-btn--track-active' : ''}`}
           onClick={() => setShowTrack(!showTrack)}
@@ -356,24 +264,30 @@ export default function App() {
         >
           <Tv size={14} />
           {showTrack ? 'HIDE 2D TRACK' : '2D LIVE TRACK'}
-        </button>
+        </button> */}
 
-        <button
-          id="btn-compare"
-          className="ctrl-btn ctrl-btn--compare"
-          onClick={handleRunComparison}
-          disabled={isComparing}
-          aria-label="Run ML vs baseline comparison"
-        >
-          <GitCompare size={14} />
-          RUN COMPARISON
-        </button>
-
-        {compareError && (
-          <div className="app__error" role="alert">
-            <AlertCircle size={13} /> {compareError}
-          </div>
-        )}
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginLeft: 'auto', borderLeft: '1px solid var(--border)', paddingLeft: '1rem' }}>
+          <select
+            value={selectedSession}
+            onChange={e => setSelectedSession(e.target.value)}
+            disabled={isLoadingSession || simStatus === 'running'}
+            style={{ padding: '0.5rem', borderRadius: '4px', background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)', outline: 'none' }}
+          >
+            <option value="Monza, 2023, R, 1, 5.0">Monza 2023 (Verstappen, Lap 5)</option>
+            <option value="Spa, 2023, R, 1, 5.0">Spa 2023 (Verstappen, Lap 5)</option>
+            <option value="Silverstone, 2022, R, 16, 5.0">Silverstone 2022 (Leclerc, Lap 5)</option>
+            <option value="Monaco, 2023, R, 14, 15.0">Monaco 2023 (Alonso, Lap 15)</option>
+            <option value="Austrian Grand Prix, 2024, R, 2, 1">Hungarian Grand Prix (Hamilton, Lap 32)</option>
+          </select>
+          <button
+            className="ctrl-btn ctrl-btn--primary"
+            onClick={handleLoadSession}
+            disabled={isLoadingSession || simStatus === 'running'}
+            style={{ background: isLoadingSession ? 'var(--bg-card)' : 'var(--accent)' }}
+          >
+            {isLoadingSession ? 'DOWNLOADING...' : 'LOAD DATA'}
+          </button>
+        </div>
       </div>
 
       {/* ── Main content grid ──────────────────────────────────────── */}
@@ -405,7 +319,7 @@ export default function App() {
             {/* Row 1: Decision + Compliance */}
             <section className="app__row app__row--top" aria-label="AI decision and compliance">
               <div className="app__col app__col--decision">
-                <DecisionCard prediction={prediction} isLoading={isPredicting} />
+                <DecisionCard prediction={prediction} isLoading={false} />
               </div>
               <div className="app__col app__col--compliance">
                 <RuleComplianceBadge prediction={prediction} />
@@ -428,15 +342,6 @@ export default function App() {
               <DecisionHistoryChart decisions={decisions} />
             </section>
 
-            {/* Row 5: Comparison */}
-            <section className="app__row" aria-label="ML vs baseline comparison">
-              <ComparisonView
-                comparison={comparison}
-                isLoading={isComparing}
-                onRunComparison={handleRunComparison}
-                canRun={!isComparing}
-              />
-            </section>
           </>
         )}
       </main>

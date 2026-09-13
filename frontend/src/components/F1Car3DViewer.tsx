@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import type { RaceState, PredictResponse } from '../api/client';
 import ferrariGlbUrl from '../../ferrari_sf25.glb?url';
+import { Minimap } from './Minimap';
 import './F1Car3DViewer.css';
 
 interface Props {
@@ -205,23 +206,23 @@ function drawPirettiSidewall(
     compound === 'SOFT'
       ? '#e10600'
       : compound === 'MEDIUM'
-      ? '#ffb800'
-      : compound === 'HARD'
-      ? '#f8fafc'
-      : compound === 'INTER'
-      ? '#10e782'
-      : '#2563eb';
+        ? '#ffb800'
+        : compound === 'HARD'
+          ? '#f8fafc'
+          : compound === 'INTER'
+            ? '#10e782'
+            : '#2563eb';
 
   const compoundGlow =
     compound === 'SOFT'
       ? 'rgba(225, 6, 0, 0.45)'
       : compound === 'MEDIUM'
-      ? 'rgba(255, 184, 0, 0.45)'
-      : compound === 'HARD'
-      ? 'rgba(248, 250, 252, 0.45)'
-      : compound === 'INTER'
-      ? 'rgba(16, 231, 130, 0.45)'
-      : 'rgba(37, 99, 235, 0.45)';
+        ? 'rgba(255, 184, 0, 0.45)'
+        : compound === 'HARD'
+          ? 'rgba(248, 250, 252, 0.45)'
+          : compound === 'INTER'
+            ? 'rgba(16, 231, 130, 0.45)'
+            : 'rgba(37, 99, 235, 0.45)';
 
   // 1. Vulcanized Rubber Sidewall Gradient
   const grad = ctx.createRadialGradient(cx, cy, 270, cx, cy, 510);
@@ -727,11 +728,12 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
   ersBattleAutoAiRef.current = ersBattleAutoAi;
   const ersBattleSocRef = useRef<number>(52.0);
   const ersOvertakeProgressRef = useRef<number>(-1.0);
-  const aheadHoldTimerRef = useRef<number>(0);
   const rivalCarRootRef = useRef<THREE.Group | null>(null);
   const rivalWheelsRef = useRef<THREE.Object3D[]>([]);
   const rivalRainLightRef = useRef<THREE.Mesh | null>(null);
   const drsFlapMeshRef = useRef<THREE.Mesh | null>(null);
+  const ghostCarRootRef = useRef<THREE.Group | null>(null);
+  const ghostOvertakeProgressRef = useRef<number>(-1.0);
 
   // High-performance direct DOM telemetry refs (bypasses React reconciliation for steady 60-120 FPS)
   const liveSpeedTopRef = useRef<HTMLSpanElement>(null);
@@ -741,6 +743,11 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
   const liveSuctionDeckRef = useRef<HTMLSpanElement>(null);
   const liveDragDeckRef = useRef<HTMLSpanElement>(null);
   const liveBrakeDeckRef = useRef<HTMLSpanElement>(null);
+
+  // Floating Screen Space Annotations (ML Stats)
+  const floatingSpeedRef = useRef<HTMLDivElement>(null);
+  const floatingBattRef = useRef<HTMLDivElement>(null);
+  const floatingGapRef = useRef<HTMLDivElement>(null);
 
   // ERS Battle live DOM refs
   const ersSocValRef = useRef<HTMLSpanElement>(null);
@@ -854,6 +861,9 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
 
   const actionRef = useRef(action);
   actionRef.current = action;
+
+  const gapAheadRef = useRef(raceState?.gap_ahead_s ?? 1.5);
+  gapAheadRef.current = raceState?.gap_ahead_s ?? 1.5;
 
   // Subsystem focus tracking ref
   const activeFocusRef = useRef<SubsystemFocus>(activeFocus);
@@ -1001,8 +1011,8 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
             ? texSet.rearSidewallLeft
             : texSet.rearSidewallRight
           : isLeft
-          ? texSet.frontSidewallLeft
-          : texSet.frontSidewallRight;
+            ? texSet.frontSidewallLeft
+            : texSet.frontSidewallRight;
 
         if (tyreMesh.material instanceof THREE.MeshStandardMaterial) {
           tyreMesh.material.map = treadMap;
@@ -1255,6 +1265,11 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
     scene.add(rivalCarRoot);
     rivalCarRootRef.current = rivalCarRoot;
     rivalWheelsRef.current = [];
+
+    const ghostCarRoot = new THREE.Group();
+    ghostCarRoot.visible = false;
+    scene.add(ghostCarRoot);
+    ghostCarRootRef.current = ghostCarRoot;
 
     // Transparent Bodywork Material (X-Ray Holographic Carbon Glass with Clearcoat)
     const initOpacity = bodyOpacityRef.current;
@@ -1990,8 +2005,8 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
           ? texSet.rearSidewallLeft
           : texSet.rearSidewallRight
         : isLeft
-        ? texSet.frontSidewallLeft
-        : texSet.frontSidewallRight;
+          ? texSet.frontSidewallLeft
+          : texSet.frontSidewallRight;
 
       const wheelTyreMat = new THREE.MeshStandardMaterial({
         color: 0x14161a,
@@ -2243,7 +2258,7 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
         line.userData.isKeyHighlight = isKey;
         pMesh.add(line);
         bodyEdgesRef.current.push(line);
-      } catch {}
+      } catch { }
 
       explodedParts.push({
         mesh: pMesh,
@@ -2509,6 +2524,33 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
           console.warn('Rival GLB clone error:', err);
         }
 
+        // Clone for Ghost Car (Green Translucent)
+        try {
+          const ghostGlb = glbModel.clone(true);
+          ghostGlb.traverse((child) => {
+            if ((child as THREE.Mesh).isMesh) {
+              const m = child as THREE.Mesh;
+              m.castShadow = false;
+              m.receiveShadow = false;
+              if (m.material instanceof THREE.Material) {
+                m.material = new THREE.MeshStandardMaterial({
+                  color: 0x10b981,
+                  emissive: 0x10b981,
+                  emissiveIntensity: 0.8,
+                  transparent: true,
+                  opacity: 0.35,
+                  depthWrite: false,
+                });
+              }
+            }
+          });
+          if (ghostCarRootRef.current) {
+            ghostCarRootRef.current.add(ghostGlb);
+          }
+        } catch (err) {
+          console.warn('Ghost GLB clone error:', err);
+        }
+
         // Crucial: Update matrix world so all world transforms, bounding boxes & positions are 100% accurate!
         carRoot.updateMatrixWorld(true);
 
@@ -2696,6 +2738,7 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
     // Pre-allocated scratch objects to eliminate per-frame GC pressure (crucial for jitter-free 60fps)
     const _scratchColorA = new THREE.Color();
     const _scratchColorB = new THREE.Color();
+    const _scratchVector = new THREE.Vector3();
     let prevFocus: SubsystemFocus | null = null;
     let prevSmoothOpacity = -1;
     let prevBrakeGlow = -1;
@@ -2748,8 +2791,8 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
         // BBS Forged Alloy Rotational Motion Blur Disk:
         // 0.0 at low speeds (0–60 km/h) ensuring Pirelli sidewalls and BBS spokes remain ultra-crisp,
         // blending smoothly to 0.82 density at top speed (365 km/h)
-        const blurOpacity = currentKmh > 60 
-          ? Math.min(0.82, Math.pow((currentKmh - 60) / 305, 0.85) * 0.80) 
+        const blurOpacity = currentKmh > 60
+          ? Math.min(0.82, Math.pow((currentKmh - 60) / 305, 0.85) * 0.80)
           : 0;
         blurRingsRef.current.forEach((br) => {
           if (br.material instanceof THREE.MeshBasicMaterial) {
@@ -2821,8 +2864,8 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
         const isVorticesOnly = aeroFlowModeRef.current === 'VORTICES';
         const streamActive = !isSparksOnly;
         // Scales naturally: slow gentle laminar ribbons at 60 km/h, fast screaming ribbons at 340+ km/h
-        const streamSpeed = isTrackMovingRef.current 
-          ? (currentKmh > 1 ? Math.max(1.2, 2.0 + (currentKmh / 365) * 22.0) : 0.4) 
+        const streamSpeed = isTrackMovingRef.current
+          ? (currentKmh > 1 ? Math.max(1.2, 2.0 + (currentKmh / 365) * 22.0) : 0.4)
           : 6.0;
 
         for (let i = 0; i < particleCount; i++) {
@@ -3028,9 +3071,6 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
         if (posDist < 0.015 && lookDist < 0.015) {
           cameraRef.current.position.copy(cameraTargetPosRef.current);
           controlsRef.current.target.copy(cameraLookAtRef.current);
-          controlsRef.current.enabled = true;
-          controlsRef.current.enableDamping = true;
-          controlsRef.current.update();
           isCameraTransitioningRef.current = false;
         }
       }
@@ -3085,163 +3125,147 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
 
       // 11B. ERS Energy Conservation, Slipstream Tow & Autonomous Overtake Simulation
       if (rivalCarRootRef.current) {
-        if (activeFocusRef.current === 'ers') {
-          rivalCarRootRef.current.visible = true;
+        rivalCarRootRef.current.visible = true;
 
-          const isOvertake = ersBattlePhaseRef.current === 'OVERTAKE';
-          const isAhead = ersBattlePhaseRef.current === 'AHEAD';
-          const isConserving = ersBattlePhaseRef.current === 'CONSERVE';
+        const isOvertake = actionRef.current === 'OVERTAKE';
+        const inErsMode = activeFocusRef.current === 'ers';
 
-          // 1. Target Overtake Progression (-1.0 = trailing in slipstream, 0.0 = wheel-to-wheel, +1.0 = ahead)
-          const targetProgress = isAhead ? 1.0 : isOvertake ? 1.0 : -1.0;
-          const progressRate = isOvertake ? 0.36 : 0.42;
-          ersOvertakeProgressRef.current = THREE.MathUtils.damp(
-            ersOvertakeProgressRef.current,
-            targetProgress,
-            progressRate * 4.0,
-            delta
-          );
-          const prog = ersOvertakeProgressRef.current;
+        // 1. RIVAL CAR LOGIC (Tracks gap_ahead strictly)
+        let targetProgress = -(gapAheadRef.current || 0);
+        targetProgress = Math.max(-1.2, targetProgress);
 
-          // 2. Dynamic Battery SOC & MGU-K Power Flow
-          if (isConserving) {
-            aheadHoldTimerRef.current = 0;
-            // Slipstream tow harvesting: +11%/sec
-            ersBattleSocRef.current = Math.min(99.0, ersBattleSocRef.current + delta * 11.0);
-            // AI tactical decision: launch overtake once battery reaches 72% AND car has settled in slipstream tow
-            if (ersBattleAutoAiRef.current && ersBattleSocRef.current >= 72.0 && prog <= -0.80) {
-              if (ersBattlePhaseRef.current !== 'OVERTAKE') {
-                ersBattlePhaseRef.current = 'OVERTAKE';
-                setErsBattlePhase('OVERTAKE');
-              }
-            }
-          } else if (isOvertake) {
-            aheadHoldTimerRef.current = 0;
-            // Heavy 120kW discharge (-11.5% / sec)
-            ersBattleSocRef.current = Math.max(18.0, ersBattleSocRef.current - delta * 11.5);
-            // Once primary car completes pass and reaches lead (+1.0 ahead)
-            if (prog >= 0.95) {
-              if (ersBattlePhaseRef.current !== 'AHEAD') {
-                ersBattlePhaseRef.current = 'AHEAD';
-                setErsBattlePhase('AHEAD');
-              }
-            }
-          } else if (isAhead) {
-            // Sustaining P1 lead in clean air (+2.5%/sec regen)
-            ersBattleSocRef.current = Math.min(95.0, ersBattleSocRef.current + delta * 2.5);
-            aheadHoldTimerRef.current += delta;
-            // Auto-loop: when AI mode is on, hold P1 lead for 3.5 seconds so overtake is clearly visible and savored
-            if (ersBattleAutoAiRef.current && aheadHoldTimerRef.current >= 3.5) {
-              aheadHoldTimerRef.current = 0;
-              ersBattleSocRef.current = 28.0; // Realistic post-overtake depleted SOC
-              if (ersBattlePhaseRef.current !== 'CONSERVE') {
-                ersBattlePhaseRef.current = 'CONSERVE';
-                setErsBattlePhase('CONSERVE');
-              }
-            }
-          }
+        const progressRate = 0.6;
+        ersOvertakeProgressRef.current = THREE.MathUtils.damp(
+          ersOvertakeProgressRef.current,
+          targetProgress,
+          progressRate * 4.0,
+          delta
+        );
+        const prog = ersOvertakeProgressRef.current;
 
-          // 3. 3D Relative Vehicle Trajectories — Wide, Clean Side-by-Side Overtake
-          const primaryTargetX = THREE.MathUtils.lerp(-0.5, 7.5, (prog + 1) / 2);
-          const rivalTargetX = THREE.MathUtils.lerp(10.5, -6.5, (prog + 1) / 2);
+        // Primary car stays roughly fixed (or slight shift in ERS)
+        const primaryTargetX = inErsMode ? THREE.MathUtils.lerp(-0.5, 3.5, (prog + 1) / 2) : 0;
+        const primaryTargetZ = 0;
+        
+        // Rival car sweeps back and forth based on gap
+        const rivalTargetX = inErsMode 
+          ? THREE.MathUtils.lerp(10.5, -0.5, (prog + 1) / 2)
+          : THREE.MathUtils.lerp(11.0, -14.0, (prog + 1) / 2);
+        const rivalTargetZ = 0;
 
-          // Lateral passing lane (negative Z = inside passing lane):
-          // Ramp in early between prog -0.92 and -0.20 (swings out into passing lane well before drawing level)
-          const lateralEntry = Math.min(1.0, Math.max(0.0, (prog + 0.92) / 0.72));
-          // Ramp out late between prog +0.25 and +0.90 (merges back only after nose is well ahead)
-          const lateralExit  = Math.min(1.0, Math.max(0.0, (prog - 0.25) / 0.65));
-          const lateralEnvelope = lateralEntry * lateralEntry * (3 - 2 * lateralEntry)
-                                - lateralExit  * lateralExit  * (3 - 2 * lateralExit);
-
-          // Primary car moves 2.5m into the side passing lane (wide, clear separation)
-          const primaryTargetZ = -lateralEnvelope * 2.5;
-          // Rival car yields slightly (0.4m) outward
-          const rivalTargetZ   =  lateralEnvelope * 0.4;
-
-          if (carRootRef.current) {
-            carRootRef.current.position.x = THREE.MathUtils.damp(carRootRef.current.position.x, primaryTargetX, 7.5, delta);
-            carRootRef.current.position.z = THREE.MathUtils.damp(carRootRef.current.position.z, primaryTargetZ, 7.5, delta);
-          }
-          rivalCarRootRef.current.position.x = THREE.MathUtils.damp(rivalCarRootRef.current.position.x, rivalTargetX, 7.5, delta);
-          rivalCarRootRef.current.position.z = THREE.MathUtils.damp(rivalCarRootRef.current.position.z, rivalTargetZ, 7.5, delta);
-          rivalCarRootRef.current.position.y = carRootRef.current?.position.y ?? 0;
-
-          // Yaw both cars to face their direction of travel (subtle steering into/out of the passing lane)
-          const lateralVelocity = (primaryTargetZ - (carRootRef.current?.position.z ?? 0));
-          const primaryYaw = Math.max(-0.18, Math.min(0.18, lateralVelocity * 0.08));
-          const rivalYaw   = Math.max(-0.10, Math.min(0.10, -rivalTargetZ * 0.04));
-          if (carRootRef.current) carRootRef.current.rotation.y = THREE.MathUtils.damp(carRootRef.current.rotation.y, primaryYaw, 5.0, delta);
-          rivalCarRootRef.current.rotation.y = THREE.MathUtils.damp(rivalCarRootRef.current.rotation.y, rivalYaw, 5.0, delta);
-
-          // 4. Synchronize Rival BBS Wheel Rotation with Track Speed
-          if (distDelta > 0) {
-            rivalWheelsRef.current.forEach((w) => {
-              const r = (w.userData?.radius as number) || 0.35;
-              w.rotation.z -= distDelta / r;
-            });
-          }
-
-          // 5. Flashing Rear FIA Rain Light on Rival Car
-          if (rivalRainLightRef.current?.material instanceof THREE.MeshBasicMaterial) {
-            const isFlashing = Math.sin(elapsed * 24) > 0;
-            rivalRainLightRef.current.material.opacity = isFlashing ? 1.0 : 0.15;
-          }
-
-          // 6. DRS Flap Animation on Primary Car
-          if (drsFlapMeshRef.current) {
-            const targetDrsAngle = isOvertake ? -0.42 : 0;
-            drsFlapMeshRef.current.rotation.z = THREE.MathUtils.damp(
-              drsFlapMeshRef.current.rotation.z,
-              targetDrsAngle,
-              14.0,
+        // 2. GHOST CAR LOGIC (Spawns and animates pass)
+        if (ghostCarRootRef.current) {
+          if (isOvertake) {
+            ghostCarRootRef.current.visible = true;
+            ghostOvertakeProgressRef.current = THREE.MathUtils.damp(
+              ghostOvertakeProgressRef.current,
+              1.2, // Aim past the rival
+              1.2, // Fast passing rate
               delta
             );
+            // Hide ghost if it successfully passes and goes far off screen
+            if (ghostOvertakeProgressRef.current > 1.1) {
+               ghostCarRootRef.current.visible = false;
+            }
+          } else {
+            // Not overtaking, hide ghost and keep it tethered to primary car progress
+            ghostCarRootRef.current.visible = false;
+            ghostOvertakeProgressRef.current = prog;
           }
 
-          // 7. Ultra-smooth direct DOM telemetry update for ERS Battle HUD (0ms React reconciliation)
-          if (frameCounter % 3 === 0) {
-            const primaryPosX = carRootRef.current?.position.x ?? primaryTargetX;
-            const rivalPosX = rivalCarRootRef.current.position.x;
-            const gapM = Math.max(0, Math.abs(rivalPosX - primaryPosX)).toFixed(1);
-            const gapS = (parseFloat(gapM) / Math.max(1, physicalSpeedMs)).toFixed(2);
-            const mguKw = isOvertake ? -120 : isConserving ? 78 : 35;
-            const currentSoc = Math.round(ersBattleSocRef.current);
-            const chaseKmh = Math.round(currentKmh + (isOvertake ? 18 : 0));
-            const leadKmh  = Math.round(currentKmh - (isOvertake ? 16 : 0));
+          const ghostProg = ghostOvertakeProgressRef.current;
+          
+          // Ghost X trajectory shoots forward
+          const ghostTargetX = inErsMode 
+            ? THREE.MathUtils.lerp(-0.5, 18.5, (ghostProg + 1) / 2) 
+            : THREE.MathUtils.lerp(0.0, 18.0, (ghostProg + 1) / 2);
 
-            if (ersSocValRef.current) {
-              ersSocValRef.current.textContent = `${currentSoc}% (${((currentSoc / 100) * 4.0).toFixed(2)} MJ)`;
-            }
-            if (ersSocBarRef.current) {
-              ersSocBarRef.current.style.width = `${currentSoc}%`;
-              ersSocBarRef.current.className = `ers-soc-fill ers-soc-fill--${ersBattlePhaseRef.current.toLowerCase()}`;
-            }
-            if (ersGapValRef.current) {
-              ersGapValRef.current.textContent = `${gapM}m (${gapS}s)`;
-            }
-            if (ersSubValRef.current) {
-              ersSubValRef.current.textContent = isConserving
-                ? 'TOW: -32% DRAG'
-                : isOvertake
-                ? 'SURGE: DELTA +24 KM/H'
-                : 'CLEAN AIR LEAD';
-            }
-            if (ersSpeedValRef.current) {
-              ersSpeedValRef.current.textContent = `${chaseKmh} vs ${leadKmh} KM/H`;
-            }
-            if (ersMguSubValRef.current) {
-              ersMguSubValRef.current.textContent = `MGU-K: ${mguKw > 0 ? `+${mguKw}` : mguKw} kW`;
-            }
+          // Lateral passing lane for ghost
+          const lateralEntry = Math.min(1.0, Math.max(0.0, (ghostProg + 0.92) / 0.72));
+          const lateralExit = Math.min(1.0, Math.max(0.0, (ghostProg - 0.25) / 0.65));
+          const lateralEnvelope = lateralEntry * lateralEntry * (3 - 2 * lateralEntry) - lateralExit * lateralExit * (3 - 2 * lateralExit);
+          const ghostTargetZ = -lateralEnvelope * 2.5;
+
+          // Apply dampening to ghost position
+          ghostCarRootRef.current.position.x = THREE.MathUtils.damp(ghostCarRootRef.current.position.x, ghostTargetX, 7.5, delta);
+          ghostCarRootRef.current.position.z = THREE.MathUtils.damp(ghostCarRootRef.current.position.z, ghostTargetZ, 7.5, delta);
+          ghostCarRootRef.current.position.y = carRootRef.current?.position.y ?? 0;
+          
+          // Yaw ghost car
+          const ghostLateralVel = (ghostTargetZ - (ghostCarRootRef.current?.position.z ?? 0));
+          const ghostYaw = Math.max(-0.18, Math.min(0.18, ghostLateralVel * 0.08));
+          ghostCarRootRef.current.rotation.y = THREE.MathUtils.damp(ghostCarRootRef.current.rotation.y, ghostYaw, 5.0, delta);
+        }
+
+        if (carRootRef.current) {
+          carRootRef.current.position.x = THREE.MathUtils.damp(carRootRef.current.position.x, primaryTargetX, 7.5, delta);
+          carRootRef.current.position.z = THREE.MathUtils.damp(carRootRef.current.position.z, primaryTargetZ, 7.5, delta);
+        }
+        rivalCarRootRef.current.position.x = THREE.MathUtils.damp(rivalCarRootRef.current.position.x, rivalTargetX, 7.5, delta);
+        rivalCarRootRef.current.position.z = THREE.MathUtils.damp(rivalCarRootRef.current.position.z, rivalTargetZ, 7.5, delta);
+        rivalCarRootRef.current.position.y = carRootRef.current?.position.y ?? 0;
+
+        // Yaw both cars
+        const primaryYaw = 0;
+        const rivalYaw = 0;
+        if (carRootRef.current) carRootRef.current.rotation.y = THREE.MathUtils.damp(carRootRef.current.rotation.y, primaryYaw, 5.0, delta);
+        rivalCarRootRef.current.rotation.y = THREE.MathUtils.damp(rivalCarRootRef.current.rotation.y, rivalYaw, 5.0, delta);
+
+        // Synchronize Rival Wheels
+        if (distDelta > 0) {
+          rivalWheelsRef.current.forEach((w) => {
+            const r = (w.userData?.radius as number) || 0.35;
+            w.rotation.z -= distDelta / r;
+          });
+        }
+
+        // Flashing Rain Light
+        if (rivalRainLightRef.current?.material instanceof THREE.MeshBasicMaterial) {
+          const isFlashing = Math.sin(elapsed * 24) > 0;
+          rivalRainLightRef.current.material.opacity = isFlashing ? 1.0 : 0.15;
+        }
+
+        // DRS
+        if (drsFlapMeshRef.current) {
+          const targetDrsAngle = isOvertake ? -0.42 : 0;
+          drsFlapMeshRef.current.rotation.z = THREE.MathUtils.damp(
+            drsFlapMeshRef.current.rotation.z,
+            targetDrsAngle,
+            14.0,
+            delta
+          );
+        }
+
+        // Only update the synthetic ERS HUD variables if in ERS view
+        if (inErsMode && frameCounter % 3 === 0) {
+          const primaryPosX = carRootRef.current?.position.x ?? primaryTargetX;
+          const rivalPosX = rivalCarRootRef.current.position.x;
+          const gapM = Math.max(0, Math.abs(rivalPosX - primaryPosX)).toFixed(1);
+          const gapS = (parseFloat(gapM) / Math.max(1, physicalSpeedMs)).toFixed(2);
+          const mguKw = isOvertake ? -120 : 35;
+          const currentSoc = raceState?.ers_pct ?? 0;
+          const chaseKmh = Math.round(currentKmh + (isOvertake ? 18 : 0));
+          const leadKmh = Math.round(currentKmh - (isOvertake ? 16 : 0));
+
+          if (ersSocValRef.current) {
+            ersSocValRef.current.textContent = `${currentSoc.toFixed(1)}% (${((currentSoc / 100) * 4.0).toFixed(2)} MJ)`;
           }
-        } else {
-          rivalCarRootRef.current.visible = false;
-          if (carRootRef.current) {
-            carRootRef.current.position.x = THREE.MathUtils.damp(carRootRef.current.position.x, 0, 6.0, delta);
-            carRootRef.current.position.z = THREE.MathUtils.damp(carRootRef.current.position.z, 0, 6.0, delta);
-            // Smoothly reset yaw so car faces forward again after leaving ERS view
-            carRootRef.current.rotation.y = THREE.MathUtils.damp(carRootRef.current.rotation.y, 0, 6.0, delta);
+          if (ersSocBarRef.current) {
+            ersSocBarRef.current.style.width = `${currentSoc}%`;
+            ersSocBarRef.current.className = `ers-soc-fill ers-soc-fill--${isOvertake ? 'overtake' : 'conserve'}`;
           }
-          rivalCarRootRef.current.rotation.y = THREE.MathUtils.damp(rivalCarRootRef.current.rotation.y, 0, 6.0, delta);
+          if (ersGapValRef.current) {
+            ersGapValRef.current.textContent = `${gapM}m (${gapS}s)`;
+          }
+          if (ersSubValRef.current) {
+            ersSubValRef.current.textContent = isOvertake ? 'SURGE: DELTA +24 KM/H' : 'TOW: -32% DRAG';
+          }
+          if (ersSpeedValRef.current) {
+            ersSpeedValRef.current.textContent = `${chaseKmh} vs ${leadKmh} KM/H`;
+          }
+          if (ersMguSubValRef.current) {
+            ersMguSubValRef.current.textContent = `MGU-K: ${mguKw > 0 ? `+${mguKw}` : mguKw} kW`;
+          }
         }
       }
 
@@ -3370,7 +3394,51 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
         controlsRef.current.update();
       }
       renderer.render(scene, camera);
-    };
+
+      // 14. Update Floating Screen-Space HUD (AFTER render so world matrices are fully up-to-date)
+      if (cameraRef.current && rendererRef.current) {
+        const widthHalf = rendererRef.current.domElement.clientWidth / 2;
+        const heightHalf = rendererRef.current.domElement.clientHeight / 2;
+
+        const updateFloating = (ref: React.RefObject<HTMLDivElement | null>, pos3D: THREE.Vector3) => {
+          if (!ref.current) return;
+          const projected = pos3D.clone().project(cameraRef.current!);
+          // Hide if behind the camera
+          if (projected.z > 1) {
+            ref.current.style.display = 'none';
+            return;
+          }
+          ref.current.style.display = 'flex';
+          const x = (projected.x * widthHalf) + widthHalf;
+          const y = -(projected.y * heightHalf) + heightHalf;
+          // Offset by a fixed amount for the arrow
+          ref.current.style.transform = `translate(${x}px, ${y}px)`;
+        };
+
+        // Battery / MGU-K Anchor (Engine Area: Mid-rear)
+        const battMesh = bodyMeshesRef.current.find(m => m.userData.subsystem === 'chassis');
+        if (battMesh) {
+          battMesh.getWorldPosition(_scratchVector);
+          _scratchVector.y += 0.4;
+          updateFloating(floatingBattRef, _scratchVector);
+        }
+
+        // Speed Anchor (Front Wheel / Suspension Area)
+        if (rotatingWheelsRef.current.length > 0) {
+          rotatingWheelsRef.current[0].getWorldPosition(_scratchVector);
+          _scratchVector.y += 0.3;
+          updateFloating(floatingSpeedRef, _scratchVector);
+        }
+
+        // Gap Ahead Anchor (Nose / Front Wing Area projecting forward)
+        const noseMesh = bodyMeshesRef.current.find(m => m.userData.subsystem === 'nose');
+        if (noseMesh) {
+          noseMesh.getWorldPosition(_scratchVector);
+          _scratchVector.y += 0.2;
+          updateFloating(floatingGapRef, _scratchVector);
+        }
+      }
+    }
     animate();
 
     const handleResize = () => {
@@ -3510,6 +3578,14 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
               <div className="loading-bar-fill" style={{ width: `${loadingProgress}%` }} />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── Overtake Banner ───────────────────────────────────────── */}
+      {action === 'OVERTAKE' && (
+        <div className="overtake-banner">
+          <Zap size={16} className="overtake-banner__icon" />
+          <span className="overtake-banner__text">ML PREDICTION: OVERTAKE</span>
         </div>
       )}
 
@@ -3747,8 +3823,8 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
                 {ersBattlePhase === 'CONSERVE'
                   ? `TOW: -${ersBattleTelemetry.dragReductionPct}% DRAG`
                   : ersBattlePhase === 'OVERTAKE'
-                  ? 'SURGE: DELTA +24 KM/H'
-                  : 'CLEAN AIR LEAD'}
+                    ? 'SURGE: DELTA +24 KM/H'
+                    : 'CLEAN AIR LEAD'}
               </span>
             </div>
 
@@ -4255,7 +4331,55 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
           <span>360° Omnidirectional Chassis Deconstruction • Scrolling tarmac, synchronized tyres & CFD active</span>
         </div>
       </div>
+
+      {/* ── Floating Screen-Space ML HUD Annotations ── */}
+      {raceState && (
+        <div className="f1-3d__floating-hud-container">
+          {/* Engine/Battery Floating Stat */}
+          <div className="floating-stat floating-stat--batt" ref={floatingBattRef}>
+            <svg className="floating-stat__arrow" width="60" height="60" viewBox="0 0 60 60">
+              <path d="M0,60 L20,30 L60,30" fill="none" stroke="var(--accent)" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+              <circle cx="0" cy="60" r="3" fill="var(--accent)" />
+            </svg>
+            <div className="floating-stat__box">
+              <span className="floating-stat__label">BATT LEFT</span>
+              <span className="floating-stat__val mono">{raceState.ers_pct.toFixed(1)}%</span>
+              <div className="floating-stat__progress-bg">
+                <div 
+                  className="floating-stat__progress-fill" 
+                  style={{ width: `${raceState.ers_pct}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Speed Floating Stat */}
+          <div className="floating-stat floating-stat--speed" ref={floatingSpeedRef}>
+            <svg className="floating-stat__arrow" width="60" height="60" viewBox="0 0 60 60">
+              <path d="M0,60 L20,30 L60,30" fill="none" stroke="var(--accent)" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+              <circle cx="0" cy="60" r="3" fill="var(--accent)" />
+            </svg>
+            <div className="floating-stat__box">
+              <span className="floating-stat__label">SPEED</span>
+              <span className="floating-stat__val mono">{raceState.speed_kph.toFixed(1)} <small>KM/H</small></span>
+            </div>
+          </div>
+
+          {/* Gap Ahead Floating Stat */}
+          <div className="floating-stat floating-stat--gap" ref={floatingGapRef}>
+            <svg className="floating-stat__arrow" width="80" height="60" viewBox="0 0 80 60">
+              <path d="M80,60 L60,30 L0,30" fill="none" stroke="var(--accent)" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+              <circle cx="80" cy="60" r="3" fill="var(--accent)" />
+            </svg>
+            <div className="floating-stat__box floating-stat__box--left">
+              <span className="floating-stat__label">GAP AHEAD</span>
+              <span className="floating-stat__val mono">+{raceState.gap_ahead_s.toFixed(2)}s</span>
+            </div>
+          </div>
+        </div>
+      )}
+      <Minimap raceState={raceState} />
     </div>
   );
-}
+};
 export default memo(F1Car3DViewer);

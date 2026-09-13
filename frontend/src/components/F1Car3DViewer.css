@@ -1415,3 +1415,149 @@
   transform: translateY(0) !important;
 }
 
+/* ── Screen-Space Floating HUD Annotations ── */
+.f1-3d__floating-hud-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Let clicks pass through to 3D canvas */
+  z-index: 10;
+  overflow: hidden;
+}
+
+.floating-stat {
+  position: absolute;
+  /* Default transform set by JS */
+  display: flex;
+  align-items: flex-end;
+  /* Smooth transform transition prevents jitter */
+  transition: transform 0.05s linear;
+}
+
+/* Specific alignments so the arrow starts exactly at the projected anchor point */
+.floating-stat--batt {
+  /* Arrow points bottom-left */
+  margin-left: 0;
+  margin-top: -60px;
+}
+
+.floating-stat--speed {
+  margin-left: 0;
+  margin-top: -60px;
+}
+
+.floating-stat--gap {
+  /* For the right side (Gap Ahead projecting forward) */
+  margin-left: -80px; 
+  margin-top: -60px;
+}
+
+.floating-stat__arrow {
+  display: block;
+  flex-shrink: 0;
+}
+
+.floating-stat__box {
+  background: rgba(8, 10, 14, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--accent);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  min-width: 90px;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.15); /* Tint red based on accent */
+  border-radius: 4px;
+}
+
+/* When arrow points left, the box is on the right. When arrow points right, box on left */
+.floating-stat__box--left {
+  order: -1;
+}
+
+.floating-stat__label {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+}
+
+.floating-stat__val {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+.floating-stat__val small {
+  font-size: 0.65em;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.floating-stat__progress-bg {
+  width: 100%;
+  height: 4px;
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.floating-stat__progress-fill {
+  height: 100%;
+  background-color: var(--accent);
+  transition: width 0.1s linear;
+}
+
+/* ── Overtake Banner ── */
+.overtake-banner {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(220, 38, 38, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid #ef4444;
+  color: white;
+  padding: 8px 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 100;
+  box-shadow: 0 0 25px rgba(239, 68, 68, 0.5);
+  animation: pulse-banner 1.5s infinite alternate;
+  pointer-events: none;
+}
+
+.overtake-banner__icon {
+  animation: flash-icon 1s infinite alternate;
+}
+
+.overtake-banner__text {
+  font-family: var(--font-mono, monospace);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+}
+
+@keyframes pulse-banner {
+  from {
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+  }
+  to {
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.8);
+    transform: translateX(-50%) scale(1.02);
+  }
+}
+
+@keyframes flash-icon {
+  from { opacity: 0.5; }
+  to { opacity: 1; filter: drop-shadow(0 0 5px white); }
+}

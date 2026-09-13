@@ -1,0 +1,48 @@
+.minimap-container {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  width: 250px;
+  height: auto;
+  pointer-events: none;
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.minimap-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  opacity: 0.8;
+  /* You may need to tweak this rotation depending on how the PNG maps to the telemetry! */
+  /* transform: rotate(90deg); */ 
+}
+
+.minimap-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background-color: #00ff00;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 8px 2px rgba(0, 255, 0, 0.6);
+  z-index: 1001;
+}
+
+.minimap-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  background: rgba(0,0,0,0.7);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
