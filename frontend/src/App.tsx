@@ -23,7 +23,10 @@ import DecisionHistoryChart from './components/charts/DecisionHistoryChart';
 
 import F1CarLogo from './components/F1CarLogo';
 import type { RaceState, PredictResponse, TelemetryPoint, DecisionPoint, ComparisonResponse } from './api/client';
+import { API_BASE_URL } from './api/client';
 import { useSimulationSocket, type SimStatus } from './useSimulationSocket';
+
+const WS_BASE_URL = API_BASE_URL.replace(/^http/, 'ws');
 
 import './App.css';
 
@@ -66,7 +69,7 @@ export default function App() {
     resume: handleResumeWS,
     stop: handleStopWS,
     reset: handleResetWS
-  } = useSimulationSocket('ws://localhost:8000/ws/simulation');
+  } = useSimulationSocket(`${WS_BASE_URL}/ws/simulation`);
 
   // Session loader state
   const [selectedSession, setSelectedSession] = useState("Monza, 2023, R, 1, 5.0");
@@ -93,7 +96,7 @@ export default function App() {
     setIsLoadingSession(true);
     const [event, year, session, driver, lap_number] = selectedSession.split(', ').map(s => s.trim());
     try {
-      const response = await fetch('http://localhost:8000/load-session', {
+      const response = await fetch(`${API_BASE_URL}/load-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

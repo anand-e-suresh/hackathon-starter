@@ -8,9 +8,9 @@
  * Mock mode is clearly labeled in the UI via the `isMock` flag on responses.
  */
 
-const API_BASE_URL =
-  (import.meta as { env?: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL ??
-  'http://localhost:8000';
+export const API_BASE_URL =
+  ((import.meta as { env?: { VITE_BASE_URL?: string } }).env?.VITE_BASE_URL ??
+  'http://localhost:8000').replace(/\/$/, '');
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
