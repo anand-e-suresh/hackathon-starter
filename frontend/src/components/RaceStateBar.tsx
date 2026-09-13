@@ -3,7 +3,7 @@
  * Polls /race-state every second while simulation is running.
  */
 import { useEffect, useRef } from 'react';
-import { Zap, Timer, Gauge, ChevronUp, ChevronDown, Activity, BatteryMedium, Disc, Cpu } from 'lucide-react';
+import { Zap, Timer, ChevronUp, ChevronDown, Activity } from 'lucide-react';
 import type { RaceState } from '../api/client';
 import './RaceStateBar.css';
 
@@ -23,29 +23,28 @@ export default function RaceStateBar({ state, isRunning, isSimpleMode = false }:
     if (state) prevPos.current = state.position;
   }, [state]);
 
-  const ersClass =
-    !state ? '' : state.ers_pct > 60 ? 'high' : state.ers_pct > 30 ? 'medium' : 'low';
+  // const ersClass =
+  //   !state ? '' : state.ers_pct > 60 ? 'high' : state.ers_pct > 30 ? 'medium' : 'low';
 
-  const gapAheadClass =
-    !state ? '' : state.gap_ahead_s < 0.5 ? 'danger' : state.gap_ahead_s < 1.0 ? 'warning' : '';
+  // const gapAheadClass =
+  // !state ? '' : state.gap_ahead_s < 0.5 ? 'danger' : state.gap_ahead_s < 1.0 ? 'warning' : '';
 
-  const progress = state ? (state.lap / state.total_laps) * 100 : 0;
+  // const progress = state ? (state.lap / state.total_laps) * 100 : 0;
 
   // Battery, Tyre degradation, Flow, and Efficiency metrics
-  const batterySoc = state ? (state.battery_soc_pct ?? state.ers_pct) : 65;
-  const usableBatteryMj = ((batterySoc / 100) * 4.0).toFixed(2);
+  // const batterySoc = state ? (state.battery_soc_pct ?? state.ers_pct) : 65;
+  // const usableBatteryMj = ((batterySoc / 100) * 4.0).toFixed(2);
 
-  const tyreDeg = state
-    ? (state.tyre_deg_pct ?? Math.min(95, parseFloat(((state.lap * 0.42) + 5.8).toFixed(1))))
-    : 14.8;
-  const degClass = tyreDeg > 65 ? 'rsb__deg-fill--high' : tyreDeg > 35 ? 'rsb__deg-fill--medium' : 'rsb__deg-fill--low';
+  // const tyreDeg = state
+  // ? (state.tyre_deg_pct ?? Math.min(95, parseFloat(((state.lap * 0.42) + 5.8).toFixed(1))))
+  // : 14.8;
+  // const degClass = tyreDeg > 65 ? 'rsb__deg-fill--high' : tyreDeg > 35 ? 'rsb__deg-fill--medium' : 'rsb__deg-fill--low';
 
   const dischargeKw = state?.discharge_rate_kw ?? (state && state.speed_kph > 280 ? 120.0 : state && state.speed_kph > 240 ? 42.5 : 0.0);
   const rechargeKw = state?.recharge_rate_kw ?? (state && state.speed_kph < 245 ? 120.0 : state && state.speed_kph < 280 ? 35.0 : 0.0);
   const netFlowKw = rechargeKw - dischargeKw;
   const flowClass = netFlowKw < 0 ? 'rsb__flow--discharge' : netFlowKw > 0 ? 'rsb__flow--recharge' : 'rsb__flow--balanced';
 
-  const efficiency = state ? (state.efficiency_pct ?? 94.2) : 94.2;
 
   if (!state) {
     return (

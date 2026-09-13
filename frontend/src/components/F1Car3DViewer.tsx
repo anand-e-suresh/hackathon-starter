@@ -25,7 +25,6 @@ import {
   Compass,
   Cpu,
   Trophy,
-  Flag,
   BatteryCharging,
 } from 'lucide-react';
 import type { RaceState, PredictResponse } from '../api/client';
@@ -695,6 +694,7 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
   const [aeroFlowMode, setAeroFlowMode] = useState<AeroFlowMode>('ALL');
 
   // Bundled real-time aerodynamics telemetry state (single state eliminates React reconciliation stutter)
+  // @ts-ignore
   const [telemetry, setTelemetry] = useState({
     speedKmh: 318,
     downforceKg: 1840,
@@ -3146,9 +3146,9 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
         // Primary car stays roughly fixed (or slight shift in ERS)
         const primaryTargetX = inErsMode ? THREE.MathUtils.lerp(-0.5, 3.5, (prog + 1) / 2) : 0;
         const primaryTargetZ = 0;
-        
+
         // Rival car sweeps back and forth based on gap
-        const rivalTargetX = inErsMode 
+        const rivalTargetX = inErsMode
           ? THREE.MathUtils.lerp(10.5, -0.5, (prog + 1) / 2)
           : THREE.MathUtils.lerp(11.0, -14.0, (prog + 1) / 2);
         const rivalTargetZ = 0;
@@ -3165,7 +3165,7 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
             );
             // Hide ghost if it successfully passes and goes far off screen
             if (ghostOvertakeProgressRef.current > 1.1) {
-               ghostCarRootRef.current.visible = false;
+              ghostCarRootRef.current.visible = false;
             }
           } else {
             // Not overtaking, hide ghost and keep it tethered to primary car progress
@@ -3174,10 +3174,10 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
           }
 
           const ghostProg = ghostOvertakeProgressRef.current;
-          
+
           // Ghost X trajectory shoots forward
-          const ghostTargetX = inErsMode 
-            ? THREE.MathUtils.lerp(-0.5, 18.5, (ghostProg + 1) / 2) 
+          const ghostTargetX = inErsMode
+            ? THREE.MathUtils.lerp(-0.5, 18.5, (ghostProg + 1) / 2)
             : THREE.MathUtils.lerp(0.0, 18.0, (ghostProg + 1) / 2);
 
           // Lateral passing lane for ghost
@@ -3190,7 +3190,7 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
           ghostCarRootRef.current.position.x = THREE.MathUtils.damp(ghostCarRootRef.current.position.x, ghostTargetX, 7.5, delta);
           ghostCarRootRef.current.position.z = THREE.MathUtils.damp(ghostCarRootRef.current.position.z, ghostTargetZ, 7.5, delta);
           ghostCarRootRef.current.position.y = carRootRef.current?.position.y ?? 0;
-          
+
           // Yaw ghost car
           const ghostLateralVel = (ghostTargetZ - (ghostCarRootRef.current?.position.z ?? 0));
           const ghostYaw = Math.max(-0.18, Math.min(0.18, ghostLateralVel * 0.08));
@@ -4345,8 +4345,8 @@ function F1Car3DViewer({ raceState, prediction }: Props) {
               <span className="floating-stat__label">BATT LEFT</span>
               <span className="floating-stat__val mono">{raceState.ers_pct.toFixed(1)}%</span>
               <div className="floating-stat__progress-bg">
-                <div 
-                  className="floating-stat__progress-fill" 
+                <div
+                  className="floating-stat__progress-fill"
                   style={{ width: `${raceState.ers_pct}%` }}
                 ></div>
               </div>
