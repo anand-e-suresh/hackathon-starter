@@ -1,6 +1,6 @@
 import pandas as pd
 import logging
-from src.fastf1_loader import load_session_telemetry
+from .fastf1_loader import load_session_telemetry
 
 logger = logging.getLogger(__name__)
 

@@ -26,7 +26,10 @@ FEATURES = [
     'ers_level', 'energy_deployment', 'energy_recovery',
     'gap_ahead', 'gap_behind', 'closing_speed', 'lap', 
     'energy_per_remaining_lap', 'attack_opportunity_score',
-    'recovery_opportunity_score', 'grid_energy_condition'
+    'recovery_opportunity_score', 'grid_energy_condition',
+    'Track_Temperature', 'Is_Raining', 'Tyre_Compound_Encoded',
+    'Tyre_Degradation_Proxy', 'Track_Position_Normalized',
+    'Opponent_Speed', 'Opponent_Tyre_Advantage'
 ]
 
 def main():

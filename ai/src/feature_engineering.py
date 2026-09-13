@@ -50,13 +50,18 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     df = df.groupby(['Year', 'Event', 'Driver'], group_keys=False).apply(simulate_energy)
     
     # 3. Gap & Closing Speed Approximation
-    # Exact frame-by-frame gap requires matching all drivers. We use a defensible 
-    # synthetic proxy based on lap progress and simulated traffic for the sake of the hackathon pipeline.
-    # In reality, this would be computed from live timing data.
-    # We will simulate a gap that randomly oscillates to provide variance for the model to learn.
-    np.random.seed(42)
-    df['gap_ahead'] = np.abs(np.random.normal(1.5, 1.0, size=len(df)))
-    df['gap_behind'] = np.abs(np.random.normal(2.0, 1.5, size=len(df)))
+    # Convert FastF1 spatial distance (meters) to temporal gap (seconds).
+    # Speed is in km/h, convert to m/s.
+    speed_ms = (df['speed'] / 3.6).replace(0, 0.1)
+    
+    # DistanceToDriverAhead is provided by FastF1. If missing or NaN, assume a safe 50 meters.
+    distance_ahead = df.get('DistanceToDriverAhead', 50.0).fillna(50.0)
+    
+    # Calculate real gap based on physics
+    df['gap_ahead'] = distance_ahead / speed_ms
+    
+    # We don't have native rear-radar telemetry in this slice, so assign a neutral 2.0s baseline
+    df['gap_behind'] = 2.0
     
     # Closing speed (m/s) = change in gap over time
     # Proxy: negative change in gap means closing in
@@ -87,16 +92,47 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
         (df['ers_level'] < 30).astype(float) * 0.2
     )
     
-    # Optional grid constraint
-    df['grid_energy_condition'] = np.random.uniform(0.5, 1.0, size=len(df))
+    # Optional grid constraint: proxy based on lap progress rather than random noise
+    df['grid_energy_condition'] = 1.0 - (df['lap'] / 50.0).clip(0, 1)
     
+    # 6. Tyres and Weather
+    compound_map = {'SOFT': 3.0, 'MEDIUM': 2.0, 'HARD': 1.0, 'UNKNOWN': 2.0, 'INTERMEDIATE': 4.0, 'WET': 5.0}
+    df['Tyre_Compound_Encoded'] = df.get('Compound', 'UNKNOWN').map(compound_map).fillna(2.0)
+    df['Opponent_Compound_Encoded'] = df.get('Opponent_Compound', 'UNKNOWN').map(compound_map).fillna(2.0)
+    
+    # Tyre Degradation Proxy = TyreLife / GripFactor
+    df['Tyre_Degradation_Proxy'] = df.get('TyreLife', 1.0) / df['Tyre_Compound_Encoded']
+    
+    df['Track_Temperature'] = df.get('TrackTemp', 35.0).astype(float)
+    df['Is_Raining'] = df.get('Rainfall', False).astype(float)
+    
+    # Track Position Normalized
+    if 'Distance' in df.columns:
+        max_dist = df.groupby(['Year', 'Event'])['Distance'].transform('max')
+        df['Track_Position_Normalized'] = df['Distance'] / max_dist.replace(0, 1)
+    else:
+        df['Track_Position_Normalized'] = 0.5
+
+    # 7. Opponent Advantage
+    df['Opponent_Tyre_Degradation'] = df.get('Opponent_TyreLife', 1.0) / df['Opponent_Compound_Encoded']
+    df['Opponent_Tyre_Advantage'] = df['Opponent_Tyre_Degradation'] - df['Tyre_Degradation_Proxy']
+    
+    # Opponent Speed
+    df['Opponent_Speed'] = df['speed'] - df['closing_speed']
+    
+    # Modify Attack Score to consider Opponent Tyre Advantage
+    df['attack_opportunity_score'] += (df['Opponent_Tyre_Advantage'] > 0).astype(float) * 0.3
+
     # Select final features
     features = [
         'speed', 'throttle', 'brake', 'gear', 'drs_available', 
         'ers_level', 'energy_deployment', 'energy_recovery',
         'gap_ahead', 'gap_behind', 'closing_speed', 'lap', 
         'energy_per_remaining_lap', 'attack_opportunity_score',
-        'recovery_opportunity_score', 'grid_energy_condition'
+        'recovery_opportunity_score', 'grid_energy_condition',
+        'Track_Temperature', 'Is_Raining', 'Tyre_Compound_Encoded',
+        'Tyre_Degradation_Proxy', 'Track_Position_Normalized',
+        'Opponent_Speed', 'Opponent_Tyre_Advantage'
     ]
     
     # Add target labels based on heuristics
